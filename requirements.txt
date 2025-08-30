@@ -1,0 +1,15 @@
+# MCP (Model Context Protocol) dependencies
+mcp>=1.0.0
+
+# PowerPoint processing dependencies
+# Note: This project uses Python standard library modules:
+# - zipfile: for handling .pptx files as ZIP archives
+# - xml.etree.ElementTree: for parsing XML content
+# No additional PowerPoint-specific libraries are required
+
+# Development dependencies (optional)
+pytest>=7.0.0
+pytest-asyncio>=0.21.0
+black>=23.0.0
+flake8>=6.0.0
+mypy>=1.0.0
