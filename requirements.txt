@@ -1,5 +1,5 @@
 # MCP (Model Context Protocol) dependencies
-mcp>=1.0.0
+mcp>=1.13.0
 
 # PowerPoint processing dependencies
 # Note: This project uses Python standard library modules:

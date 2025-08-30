@@ -16,9 +16,7 @@ from mcp.types import (
     TextContent,
     ErrorData,
     INTERNAL_ERROR,
-    METHOD_NOT_FOUND,
-    ServerCapabilities,
-    ToolsCapability
+    METHOD_NOT_FOUND
 )
 from mcp import McpError
 
@@ -55,61 +53,60 @@ class PowerPointMCPServer:
         @self.server.list_tools()
         async def list_tools() -> ListToolsResult:
             """List available tools."""
-            return ListToolsResult(
-                tools=[
-                    Tool(
-                        name="extract_powerpoint_content",
-                        description="Extract complete structured content from a PowerPoint file",
-                        inputSchema={
-                            "type": "object",
-                            "properties": {
-                                "file_path": {
-                                    "type": "string",
-                                    "description": "Path to the PowerPoint file (.pptx)"
-                                }
+            tools = [
+                Tool(
+                    name="extract_powerpoint_content",
+                    description="Extract complete structured content from a PowerPoint file",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "file_path": {
+                                "type": "string",
+                                "description": "Path to the PowerPoint file (.pptx)"
+                            }
+                        },
+                        "required": ["file_path"]
+                    }
+                ),
+                Tool(
+                    name="get_powerpoint_attributes",
+                    description="Get specific attributes from PowerPoint slides",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "file_path": {
+                                "type": "string",
+                                "description": "Path to the PowerPoint file (.pptx)"
                             },
-                            "required": ["file_path"]
-                        }
-                    ),
-                    Tool(
-                        name="get_powerpoint_attributes",
-                        description="Get specific attributes from PowerPoint slides",
-                        inputSchema={
-                            "type": "object",
-                            "properties": {
-                                "file_path": {
-                                    "type": "string",
-                                    "description": "Path to the PowerPoint file (.pptx)"
-                                },
-                                "attributes": {
-                                    "type": "array",
-                                    "items": {"type": "string"},
-                                    "description": "List of attributes to extract (title, subtitle, text, tables, images, layout, size, sections, notes, object_counts)"
-                                }
+                            "attributes": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "List of attributes to extract (title, subtitle, text, tables, images, layout, size, sections, notes, object_counts)"
+                            }
+                        },
+                        "required": ["file_path", "attributes"]
+                    }
+                ),
+                Tool(
+                    name="get_slide_info",
+                    description="Get information for a specific slide",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "file_path": {
+                                "type": "string",
+                                "description": "Path to the PowerPoint file (.pptx)"
                             },
-                            "required": ["file_path", "attributes"]
-                        }
-                    ),
-                    Tool(
-                        name="get_slide_info",
-                        description="Get information for a specific slide",
-                        inputSchema={
-                            "type": "object",
-                            "properties": {
-                                "file_path": {
-                                    "type": "string",
-                                    "description": "Path to the PowerPoint file (.pptx)"
-                                },
-                                "slide_number": {
-                                    "type": "integer",
-                                    "description": "Slide number (1-based)"
-                                }
-                            },
-                            "required": ["file_path", "slide_number"]
-                        }
-                    )
-                ]
-            )
+                            "slide_number": {
+                                "type": "integer",
+                                "description": "Slide number (1-based)"
+                            }
+                        },
+                        "required": ["file_path", "slide_number"]
+                    }
+                )
+            ]
+            return ListToolsResult(tools=tools)
         
         @self.server.call_tool()
         async def call_tool(name: str, arguments: Dict[str, Any]) -> CallToolResult:
@@ -382,10 +379,7 @@ class PowerPointMCPServer:
                     write_stream,
                     InitializationOptions(
                         server_name=self.config.server_name,
-                        server_version=self.config.server_version,
-                        capabilities=ServerCapabilities(
-                            tools=ToolsCapability()
-                        )
+                        server_version=self.config.server_version
                     )
                 )
         except Exception as e:
