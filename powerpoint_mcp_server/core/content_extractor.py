@@ -1394,32 +1394,95 @@ class ContentExtractor:
             List of section dictionaries
         """
         try:
-            root = self.xml_parser.parse_xml_string(presentation_xml_content)
-            if root is None:
-                return []
+            # Parse XML directly with ElementTree
+            root = ET.fromstring(presentation_xml_content)
             
             sections = []
             
-            # Look for section list
-            section_list = self.xml_parser.find_element_with_namespace(root, './/p:sectionLst')
+            # Define namespaces for section detection
+            namespaces = {
+                'p': 'http://schemas.openxmlformats.org/presentationml/2006/main',
+                'p14': 'http://schemas.microsoft.com/office/powerpoint/2010/main',
+                'a': 'http://schemas.openxmlformats.org/drawingml/2006/main',
+                'r': 'http://schemas.openxmlformats.org/officeDocument/2006/relationships'
+            }
+            
+            # Look for section list in both standard and PowerPoint 2010+ namespaces
+            section_list = None
+            
+            # Try standard namespace first
+            section_list = root.find('.//p:sectionLst', namespaces)
+            
+            # If not found, try PowerPoint 2010+ namespace
+            if section_list is None:
+                section_list = root.find('.//p14:sectionLst', namespaces)
+            
+            # Also try searching without namespace prefix (in case of namespace issues)
+            if section_list is None:
+                for elem in root.iter():
+                    if elem.tag.endswith('}sectionLst') or elem.tag == 'sectionLst':
+                        section_list = elem
+                        break
+            
             if section_list is not None:
-                section_elements = self.xml_parser.find_elements_with_namespace(section_list, './/p:section')
+                logger.debug(f"Found section list: {section_list.tag}")
+                
+                # Try both namespaces for section elements
+                section_elements = section_list.findall('.//p:section', namespaces)
+                if not section_elements:
+                    section_elements = section_list.findall('.//p14:section', namespaces)
+                
+                # Also try searching without namespace prefix
+                if not section_elements:
+                    for elem in section_list.iter():
+                        if elem.tag.endswith('}section') or elem.tag == 'section':
+                            section_elements.append(elem)
+                
+                logger.debug(f"Found {len(section_elements)} section elements")
                 
                 for section_elem in section_elements:
                     section_name = section_elem.get('name', 'Unnamed Section')
                     section_id = section_elem.get('id', '')
                     
-                    # Count slides in this section (this would need slide relationship data)
-                    # For now, we'll just provide the section name and ID
+                    logger.debug(f"Processing section: name='{section_name}', id='{section_id}'")
+                    
+                    # Look for slide references in this section
+                    slide_refs = section_elem.findall('.//p:sldId', namespaces)
+                    if not slide_refs:
+                        slide_refs = section_elem.findall('.//p14:sldId', namespaces)
+                    
+                    # Also try searching without namespace prefix
+                    if not slide_refs:
+                        for elem in section_elem.iter():
+                            if elem.tag.endswith('}sldId') or elem.tag == 'sldId':
+                                slide_refs.append(elem)
+                    
+                    slide_count = len(slide_refs)
+                    slide_ids = []
+                    for slide_ref in slide_refs:
+                        slide_id = slide_ref.get('id', '')
+                        r_id = slide_ref.get('r:id', '')
+                        if slide_id or r_id:
+                            slide_ids.append({
+                                'id': slide_id,
+                                'r_id': r_id
+                            })
+                    
                     sections.append({
                         'name': section_name,
-                        'id': section_id
+                        'id': section_id,
+                        'slide_count': slide_count,
+                        'slide_ids': slide_ids
                     })
+            else:
+                logger.debug("No section list found in presentation XML")
             
             return sections
             
         except Exception as e:
             logger.warning(f"Failed to extract section information: {e}")
+            import traceback
+            logger.debug(f"Section extraction traceback: {traceback.format_exc()}")
             return []
     
     def get_slide_size_info(self, presentation_xml_content: str) -> Dict[str, Any]:

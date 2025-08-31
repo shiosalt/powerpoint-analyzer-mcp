@@ -34,7 +34,11 @@ class XMLParser:
         'dcterms': 'http://purl.org/dc/terms/',
         'dcmitype': 'http://purl.org/dc/dcmitype/',
         'xsi': 'http://www.w3.org/2001/XMLSchema-instance',
-        'rel': 'http://schemas.openxmlformats.org/package/2006/relationships'
+        'rel': 'http://schemas.openxmlformats.org/package/2006/relationships',
+        # PowerPoint 2010+ namespaces
+        'p14': 'http://schemas.microsoft.com/office/powerpoint/2010/main',
+        'p15': 'http://schemas.microsoft.com/office/powerpoint/2012/main',
+        'p16': 'http://schemas.microsoft.com/office/powerpoint/2013/main'
     }
     
     def __init__(self, enable_performance_mode: bool = True):

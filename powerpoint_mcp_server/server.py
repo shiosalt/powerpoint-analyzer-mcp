@@ -494,7 +494,9 @@ class PowerPointMCPServer:
                 if presentation_xml:
                     result['metadata'] = self.content_extractor.extract_presentation_metadata(presentation_xml)
                     result['slide_size'] = self.content_extractor.get_slide_size_info(presentation_xml)
-                    result['sections'] = self.content_extractor.extract_section_information(presentation_xml)
+                    sections = self.content_extractor.extract_section_information(presentation_xml)
+                    logger.debug(f"Extracted {len(sections)} sections: {sections}")
+                    result['sections'] = sections
 
                 # Get slide XML files
                 slide_files = extractor.get_slide_xml_files()
