@@ -4,20 +4,20 @@ A Model Context Protocol (MCP) server for extracting structured information from
 
 ## Features
 
-- Extract complete structured content from PowerPoint (.pptx) files
+- Extract structured content from PowerPoint (.pptx) files
 - Get specific attributes from slides (title, subtitle, text, tables, images, etc.)
 - Retrieve information for individual slides
-- Query slides with flexible filtering criteria
+- Query slides with filtering criteria
 - Extract table data with formatting detection
-- **Advanced text formatting detection**: Bold, italic, underline, strikethrough, highlighting, hyperlinks
+- **Text formatting detection**: Bold, italic, underline, strikethrough, highlighting, hyperlinks
 - **Font analysis**: Font sizes, colors, and styling information
-- Get comprehensive presentation overview and analysis
+- Get presentation overview and analysis
 - Support for slide layouts, placeholders, and formatting information
-- **Comprehensive testing suite** for formatting detection validation
+- **Testing suite** for formatting detection validation
 - **Debug tools** for troubleshooting formatting detection issues
-- Lightweight implementation using Python standard libraries (no external PowerPoint dependencies)
-- Direct XML parsing for fast and efficient processing
-- Built with FastMCP 2.0 for optimal performance and compatibility
+- Implementation using Python standard libraries (no external PowerPoint dependencies)
+- Direct XML parsing for processing
+- Built with FastMCP 2.0
 
 ## Project Structure
 
@@ -76,23 +76,23 @@ pwd
 
 ## Technical Approach
 
-This server uses a lightweight approach to PowerPoint processing:
+This server processes PowerPoint files using the following approach:
 
 - **Direct ZIP handling**: .pptx files are processed as ZIP archives using Python's `zipfile` module
-- **Advanced XML parsing**: Internal PowerPoint XML structure is parsed using `xml.etree.ElementTree` with comprehensive namespace support
+- **XML parsing**: Internal PowerPoint XML structure is parsed using `xml.etree.ElementTree` with namespace support
 - **Dual formatting detection**: Supports both XML attribute and child element formats for text formatting properties
 - **No external dependencies**: Uses only Python standard library modules for PowerPoint processing
-- **Efficient processing**: Extracts only the required information without loading entire presentations into memory
-- **Comprehensive caching**: Intelligent caching system for improved performance on repeated operations
+- **Processing**: Extracts only the required information without loading entire presentations into memory
+- **Caching**: Caching system for performance on repeated operations
 
 ## Text Formatting Detection
 
-The server provides advanced text formatting detection capabilities:
+The server provides text formatting detection capabilities:
 
 ### Supported Formatting Types
-- **Bold text**: Detects bold formatting in all text elements
+- **Bold text**: Detects bold formatting in text elements
 - **Italic text**: Identifies italic styling across slides
-- **Underlined text**: Finds underlined text with various underline styles
+- **Underlined text**: Finds underlined text with underline styles
 - **Strikethrough text**: Detects strikethrough formatting
 - **Highlighted text**: Identifies highlighted/background colored text
 - **Hyperlinks**: Extracts hyperlink information and relationship IDs
@@ -100,14 +100,14 @@ The server provides advanced text formatting detection capabilities:
 
 ### Technical Implementation
 - **Dual detection method**: Checks both XML attributes (`b="1"`) and child elements (`<a:b val="1"/>`)
-- **Namespace-aware parsing**: Proper handling of Office Open XML namespaces
-- **Comprehensive validation**: Extensive test suite ensures accurate detection across different PowerPoint versions
-- **Debug capabilities**: Built-in debugging tools for troubleshooting formatting detection issues
+- **Namespace-aware parsing**: Handling of Office Open XML namespaces
+- **Validation**: Test suite for detection across different PowerPoint versions
+- **Debug capabilities**: Debugging tools for troubleshooting formatting detection issues
 
 ### Validation and Testing
-- **Comprehensive test suite**: `tests/test_formatting_detection.py` validates all formatting types
-- **Debug tools**: `tests/debug_formatting_detection.py` provides detailed XML analysis
-- **Real-world validation**: Tested with complex PowerPoint files containing mixed formatting
+- **Test suite**: `tests/test_formatting_detection.py` validates formatting types
+- **Debug tools**: `tests/debug_formatting_detection.py` provides XML analysis
+- **Validation**: Tested with PowerPoint files containing mixed formatting
 
 ## Usage
 
@@ -132,14 +132,14 @@ powerpoint-mcp-server
 5. **extract_table_data**: Extract table data with flexible selection and formatting detection
 
 #### Text Formatting Analysis
-6. **extract_bold_text**: Extract all bold text from slides with location information
+6. **extract_bold_text**: Extract bold text from slides with location information
 7. **extract_formatted_text**: Extract text with specific formatting types (bold, italic, underline, strikethrough, highlight, hyperlinks)
-8. **get_formatting_summary**: Get comprehensive summary of all text formatting in the presentation
-9. **analyze_text_formatting**: Analyze text formatting patterns across slides with detailed formatting detection
+8. **get_formatting_summary**: Get summary of text formatting in the presentation
+9. **analyze_text_formatting**: Analyze text formatting patterns across slides with formatting detection
 
 #### Presentation Analysis
-10. **get_presentation_overview**: Get comprehensive presentation overview and analysis
-11. **clear_cache**: Clear the analysis cache for improved performance
+10. **get_presentation_overview**: Get presentation overview and analysis
+11. **clear_cache**: Clear the cache
 12. **reload_file_content**: Reload file content by clearing cache and re-extracting
 
 ## AI Agent Integration
@@ -223,7 +223,7 @@ For Claude Code, create or update your `mcp_settings.json`:
 
 ### Alternative: Using the Startup Script
 
-You can also use the enhanced startup script for more configuration options:
+You can also use the startup script for configuration options:
 
 ```json
 {
@@ -286,7 +286,7 @@ Once configured, you can ask your AI agent to:
    Please extract all bold text from /Users/username/Documents/quarterly-report.pptx and show me which slides they appear on
    ```
 
-7. **Get comprehensive formatting summary**:
+7. **Get formatting summary**:
    ```
    Can you analyze all text formatting (bold, italic, underline, etc.) in /Users/username/Documents/quarterly-report.pptx?
    ```
@@ -346,9 +346,9 @@ powerpoint_mcp_server/
 ├── config.py              # Configuration management
 ├── core/
 │   ├── __init__.py
-│   ├── content_extractor.py    # PowerPoint content extraction with advanced formatting detection
+│   ├── content_extractor.py    # PowerPoint content extraction with formatting detection
 │   ├── attribute_processor.py  # Attribute filtering and processing
-│   ├── presentation_analyzer.py # Comprehensive presentation analysis
+│   ├── presentation_analyzer.py # Presentation analysis
 │   └── xml_parser.py           # XML parsing utilities
 ├── utils/
 │   ├── __init__.py
@@ -356,7 +356,7 @@ powerpoint_mcp_server/
 │   ├── zip_extractor.py        # ZIP archive handling
 │   └── cache_manager.py        # Caching utilities
 └── tests/
-    ├── test_formatting_detection.py  # Comprehensive formatting detection tests
+    ├── test_formatting_detection.py  # Formatting detection tests
     ├── debug_formatting_detection.py # Debug tools for formatting issues
     └── ...                           # Other test files
 ```
