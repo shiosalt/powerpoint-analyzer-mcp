@@ -54,7 +54,19 @@ Thumbs.db
 *.tmp
 *.temp
 temp/
-tests/test_files/test_complex.pptx
-tests/test_files/test_complex.pptx
-tests/test_files/test_large.pptx
-tests/test_files/test_minimal.pptx
+
+# Debug files
+debug_*.py
+test_*_debug.py
+test_section_*.py
+test_server_*.py
+test_mcp_*.py
+
+# PowerPoint temporary files
+~$*.pptx
+~$*.ppt
+
+# Test files (keep in repo but ignore if needed)
+# tests/test_files/test_complex.pptx
+# tests/test_files/test_large.pptx
+# tests/test_files/test_minimal.pptx
