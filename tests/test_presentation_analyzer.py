@@ -530,7 +530,7 @@ class TestPresentationAnalyzer:
         assert len(presentation_analyzer._analysis_cache) == 0
     
     @patch('powerpoint_mcp_server.utils.zip_extractor.ZipExtractor')
-    def test_analyze_presentation_integration(self, mock_zip_extractor, presentation_analyzer, sample_slide_info):
+    async def test_analyze_presentation_integration(self, mock_zip_extractor, presentation_analyzer, sample_slide_info):
         """Test the main analyze_presentation method integration."""
         # Mock ZipExtractor
         mock_extractor_instance = Mock()
@@ -547,7 +547,7 @@ class TestPresentationAnalyzer:
         presentation_analyzer.content_extractor.extract_slide_content.return_value = sample_slide_info
         
         # Test analysis
-        result = presentation_analyzer.analyze_presentation(
+        result = await presentation_analyzer.analyze_presentation(
             file_path="test.pptx",
             analysis_depth=AnalysisDepth.BASIC,
             include_sample_content=True

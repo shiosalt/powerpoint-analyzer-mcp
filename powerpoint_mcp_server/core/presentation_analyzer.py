@@ -103,7 +103,7 @@ class PresentationAnalyzer:
         self.content_extractor = content_extractor or ContentExtractor()
         self._analysis_cache = {}
     
-    def analyze_presentation(
+    async def analyze_presentation(
         self,
         file_path: str,
         analysis_depth: AnalysisDepth = AnalysisDepth.BASIC,

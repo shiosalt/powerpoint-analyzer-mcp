@@ -3,7 +3,7 @@
     "powerpoint-analyzer": {
       "command": "python",
       "args": [
-        "j:\\MCP\\powerpoint-analyzer\\start_mcp_server.py"
+        "j:\\MCP\\powerpoint-analyzer\\main.py"
       ],
       "disabled": false,
       "autoApprove": [
@@ -14,7 +14,10 @@
         "extract_table_data",
         "analyze_text_formatting",
         "filter_and_aggregate",
-        "get_presentation_overview"
+        "get_presentation_overview",
+        "clear_cache",
+        "reload_file_content",
+        "extract_bold_text"
       ]
     }
   }

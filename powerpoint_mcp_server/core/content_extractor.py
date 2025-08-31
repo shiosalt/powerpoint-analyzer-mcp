@@ -651,6 +651,12 @@ class ContentExtractor:
             formatted_text = text
             formatting_tags = []
             
+            # Debug: Log the run properties XML for troubleshooting
+            if logger.isEnabledFor(logging.DEBUG):
+                import xml.etree.ElementTree as ET
+                logger.debug(f"Processing run properties for text: '{text[:50]}...'")
+                logger.debug(f"Run properties XML: {ET.tostring(r_pr, encoding='unicode')}")
+            
             # Extract font size
             font_size_elem = self.xml_parser.find_element_with_namespace(r_pr, './/a:sz')
             if font_size_elem is not None:
@@ -677,37 +683,81 @@ class ContentExtractor:
                     if color_val:
                         text_element.font_colors.append(color_val)
             
-            # Check for bold
-            bold_elem = self.xml_parser.find_element_with_namespace(r_pr, './/a:b')
-            if bold_elem is not None:
-                bold_val = bold_elem.get('val', '1')
-                if bold_val != '0':
-                    text_element.bolded += 1
-                    formatting_tags.append('b')
+            # Check for bold - can be either attribute or child element
+            bold_attr = r_pr.get('b')
+            if bold_attr is not None and bold_attr != '0':
+                text_element.bolded += 1
+                formatting_tags.append('b')
+                logger.debug(f"Applied bold formatting (attribute) to text: '{text[:30]}...'")
+            else:
+                # Also check for bold as child element
+                bold_elem = self.xml_parser.find_element_with_namespace(r_pr, './/a:b')
+                if bold_elem is not None:
+                    bold_val = bold_elem.get('val', '1')
+                    logger.debug(f"Found bold element with val='{bold_val}' for text: '{text[:30]}...'")
+                    if bold_val != '0':
+                        text_element.bolded += 1
+                        formatting_tags.append('b')
+                        logger.debug(f"Applied bold formatting (element) to text: '{text[:30]}...'")
+                else:
+                    logger.debug(f"No bold formatting found for text: '{text[:30]}...'")
             
-            # Check for italic
-            italic_elem = self.xml_parser.find_element_with_namespace(r_pr, './/a:i')
-            if italic_elem is not None:
-                italic_val = italic_elem.get('val', '1')
-                if italic_val != '0':
-                    text_element.italic += 1
-                    formatting_tags.append('i')
+            # Check for italic - can be either attribute or child element
+            italic_attr = r_pr.get('i')
+            if italic_attr is not None and italic_attr != '0':
+                text_element.italic += 1
+                formatting_tags.append('i')
+                logger.debug(f"Applied italic formatting (attribute) to text: '{text[:30]}...'")
+            else:
+                # Also check for italic as child element
+                italic_elem = self.xml_parser.find_element_with_namespace(r_pr, './/a:i')
+                if italic_elem is not None:
+                    italic_val = italic_elem.get('val', '1')
+                    logger.debug(f"Found italic element with val='{italic_val}' for text: '{text[:30]}...'")
+                    if italic_val != '0':
+                        text_element.italic += 1
+                        formatting_tags.append('i')
+                        logger.debug(f"Applied italic formatting (element) to text: '{text[:30]}...'")
+                else:
+                    logger.debug(f"No italic formatting found for text: '{text[:30]}...'")
             
-            # Check for underline
-            underline_elem = self.xml_parser.find_element_with_namespace(r_pr, './/a:u')
-            if underline_elem is not None:
-                underline_val = underline_elem.get('val', 'sng')
-                if underline_val != 'none':
-                    text_element.underlined += 1
-                    formatting_tags.append('u')
+            # Check for underline - can be either attribute or child element
+            underline_attr = r_pr.get('u')
+            if underline_attr is not None and underline_attr != 'none':
+                text_element.underlined += 1
+                formatting_tags.append('u')
+                logger.debug(f"Applied underline formatting (attribute) to text: '{text[:30]}...'")
+            else:
+                # Also check for underline as child element
+                underline_elem = self.xml_parser.find_element_with_namespace(r_pr, './/a:u')
+                if underline_elem is not None:
+                    underline_val = underline_elem.get('val', 'sng')
+                    logger.debug(f"Found underline element with val='{underline_val}' for text: '{text[:30]}...'")
+                    if underline_val != 'none':
+                        text_element.underlined += 1
+                        formatting_tags.append('u')
+                        logger.debug(f"Applied underline formatting (element) to text: '{text[:30]}...'")
+                else:
+                    logger.debug(f"No underline formatting found for text: '{text[:30]}...'")
             
-            # Check for strikethrough
-            strike_elem = self.xml_parser.find_element_with_namespace(r_pr, './/a:strike')
-            if strike_elem is not None:
-                strike_val = strike_elem.get('val', 'sngStrike')
-                if strike_val != 'noStrike':
-                    text_element.strikethrough += 1
-                    formatting_tags.append('s')
+            # Check for strikethrough - can be either attribute or child element
+            strike_attr = r_pr.get('strike')
+            if strike_attr is not None and strike_attr != 'noStrike':
+                text_element.strikethrough += 1
+                formatting_tags.append('s')
+                logger.debug(f"Applied strikethrough formatting (attribute) to text: '{text[:30]}...'")
+            else:
+                # Also check for strikethrough as child element
+                strike_elem = self.xml_parser.find_element_with_namespace(r_pr, './/a:strike')
+                if strike_elem is not None:
+                    strike_val = strike_elem.get('val', 'sngStrike')
+                    logger.debug(f"Found strikethrough element with val='{strike_val}' for text: '{text[:30]}...'")
+                    if strike_val != 'noStrike':
+                        text_element.strikethrough += 1
+                        formatting_tags.append('s')
+                        logger.debug(f"Applied strikethrough formatting (element) to text: '{text[:30]}...'")
+                else:
+                    logger.debug(f"No strikethrough formatting found for text: '{text[:30]}...'")
             
             # Check for highlight (background fill)
             highlight_elem = self.xml_parser.find_element_with_namespace(r_pr, './/a:highlight')

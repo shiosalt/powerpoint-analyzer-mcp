@@ -853,7 +853,7 @@ class PowerPointMCPServer:
             analysis_depth = AnalysisDepth(analysis_depth_str)
 
             # Analyze presentation
-            result = self.presentation_analyzer.analyze_presentation(
+            result = await self.presentation_analyzer.analyze_presentation(
                 file_path=file_path,
                 analysis_depth=analysis_depth,
                 include_sample_content=include_sample_content
@@ -947,7 +947,7 @@ class PowerPointMCPServer:
             analysis_depth = AnalysisDepth(analysis_depth_str)
 
             # Analyze presentation using the presentation analyzer
-            result = self.presentation_analyzer.analyze_presentation(
+            result = await self.presentation_analyzer.analyze_presentation(
                 file_path=file_path,
                 analysis_depth=analysis_depth,
                 include_sample_content=include_text
