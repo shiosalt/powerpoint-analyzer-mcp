@@ -1,6 +1,9 @@
-# PowerPoint MCP Server
+# PowerPoint Analyze MCP Server
+An MCP server that enables search and extraction using PowerPoint structure and text formatting attributes.
 
-A Model Context Protocol (MCP) server for extracting structured information from PowerPoint files using FastMCP 2.0.
+## Background
+Most AI Agent searches that claim PowerPoint support typically ignore PowerPoint file structure and only extract text for searching.
+This tool enables outputting text written in bold and other structured information.
 
 ## Features
 
