@@ -745,6 +745,45 @@ class ContentExtractor:
             logger.error(f"Failed to extract text elements for slide {slide_number}: {e}")
             return []
     
+    def _extract_cell_text_content(self, cell) -> Optional[str]:
+        """
+        Extract text content from a table cell.
+        
+        Args:
+            cell: Table cell element
+            
+        Returns:
+            Text content if available, None otherwise
+        """
+        try:
+            # Find text body in cell
+            tx_body = self.xml_parser.find_element_with_namespace(cell, './/a:txBody')
+            if tx_body is None:
+                return None
+            
+            # Extract all text from paragraphs
+            text_parts = []
+            paragraphs = self.xml_parser.find_elements_with_namespace(tx_body, './/a:p')
+            
+            for paragraph in paragraphs:
+                # Get text from all runs in the paragraph
+                runs = self.xml_parser.find_elements_with_namespace(paragraph, './/a:r')
+                paragraph_text = []
+                
+                for run in runs:
+                    text_elem = self.xml_parser.find_element_with_namespace(run, './/a:t')
+                    if text_elem is not None and text_elem.text:
+                        paragraph_text.append(text_elem.text)
+                
+                if paragraph_text:
+                    text_parts.append(''.join(paragraph_text))
+            
+            return '\n'.join(text_parts) if text_parts else None
+            
+        except Exception as e:
+            logger.warning(f"Failed to extract cell text content: {e}")
+            return None
+
     def extract_formatted_text(self, slide_xml_content: str) -> Dict[str, Any]:
         """
         Extract formatted and plain text content from a slide.

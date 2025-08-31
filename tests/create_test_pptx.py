@@ -9,7 +9,7 @@ from pathlib import Path
 
 def create_minimal_pptx(output_path: str):
     """Create a minimal valid .pptx file for testing."""
-    
+
     # Create the basic structure
     with zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED) as pptx:
         # [Content_Types].xml
@@ -26,7 +26,7 @@ def create_minimal_pptx(output_path: str):
     <Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>
 </Types>'''
         pptx.writestr('[Content_Types].xml', content_types)
-        
+
         # _rels/.rels
         main_rels = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
@@ -35,7 +35,7 @@ def create_minimal_pptx(output_path: str):
     <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/>
 </Relationships>'''
         pptx.writestr('_rels/.rels', main_rels)
-        
+
         # ppt/_rels/presentation.xml.rels
         ppt_rels = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
@@ -44,10 +44,10 @@ def create_minimal_pptx(output_path: str):
     <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="theme/theme1.xml"/>
 </Relationships>'''
         pptx.writestr('ppt/_rels/presentation.xml.rels', ppt_rels)
-        
+
         # ppt/presentation.xml
         presentation = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<p:presentation xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" 
+<p:presentation xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
                 xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
                 xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
     <p:sldMasterIdLst>
@@ -60,7 +60,7 @@ def create_minimal_pptx(output_path: str):
     <p:notesSz cx="6858000" cy="9144000"/>
 </p:presentation>'''
         pptx.writestr('ppt/presentation.xml', presentation)
-        
+
         # ppt/slides/slide1.xml
         slide1 = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <p:sld xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
@@ -134,7 +134,7 @@ def create_minimal_pptx(output_path: str):
     </p:clrMapOvr>
 </p:sld>'''
         pptx.writestr('ppt/slides/slide1.xml', slide1)
-        
+
         # ppt/slideMasters/slideMaster1.xml (minimal)
         slide_master = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <p:sldMaster xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
@@ -162,7 +162,14 @@ def create_minimal_pptx(output_path: str):
     </p:sldLayoutIdLst>
 </p:sldMaster>'''
         pptx.writestr('ppt/slideMasters/slideMaster1.xml', slide_master)
-        
+
+        # ppt/slideMasters/_rels/slideMaster1.xml.rels
+        slide_master_rels = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+    <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/>
+</Relationships>'''
+        pptx.writestr('ppt/slideMasters/_rels/slideMaster1.xml.rels', slide_master_rels)
+
         # ppt/slideLayouts/slideLayout1.xml (minimal)
         slide_layout = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <p:sldLayout xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
@@ -190,7 +197,7 @@ def create_minimal_pptx(output_path: str):
     </p:clrMapOvr>
 </p:sldLayout>'''
         pptx.writestr('ppt/slideLayouts/slideLayout1.xml', slide_layout)
-        
+
         # ppt/theme/theme1.xml (minimal)
         theme = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="Office Theme">
@@ -236,7 +243,7 @@ def create_minimal_pptx(output_path: str):
     </a:themeElements>
 </a:theme>'''
         pptx.writestr('ppt/theme/theme1.xml', theme)
-        
+
         # docProps/core.xml
         core_props = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties"
@@ -252,7 +259,7 @@ def create_minimal_pptx(output_path: str):
     <dcterms:modified xsi:type="dcterms:W3CDTF">2024-01-01T12:00:00Z</dcterms:modified>
 </cp:coreProperties>'''
         pptx.writestr('docProps/core.xml', core_props)
-        
+
         # docProps/app.xml
         app_props = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties"
@@ -273,7 +280,7 @@ def create_minimal_pptx(output_path: str):
 
 def create_complex_pptx(output_path: str):
     """Create a more complex .pptx file with tables and multiple slides."""
-    
+
     with zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED) as pptx:
         # [Content_Types].xml
         content_types = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -290,7 +297,7 @@ def create_complex_pptx(output_path: str):
     <Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>
 </Types>'''
         pptx.writestr('[Content_Types].xml', content_types)
-        
+
         # _rels/.rels
         main_rels = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
@@ -299,7 +306,7 @@ def create_complex_pptx(output_path: str):
     <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/>
 </Relationships>'''
         pptx.writestr('_rels/.rels', main_rels)
-        
+
         # ppt/_rels/presentation.xml.rels
         ppt_rels = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
@@ -309,10 +316,10 @@ def create_complex_pptx(output_path: str):
     <Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="theme/theme1.xml"/>
 </Relationships>'''
         pptx.writestr('ppt/_rels/presentation.xml.rels', ppt_rels)
-        
+
         # ppt/presentation.xml
         presentation = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<p:presentation xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" 
+<p:presentation xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
                 xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
                 xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
     <p:sldMasterIdLst>
@@ -326,7 +333,7 @@ def create_complex_pptx(output_path: str):
     <p:notesSz cx="6858000" cy="9144000"/>
 </p:presentation>'''
         pptx.writestr('ppt/presentation.xml', presentation)
-        
+
         # ppt/slides/slide1.xml (title slide)
         slide1 = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <p:sld xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
@@ -375,7 +382,7 @@ def create_complex_pptx(output_path: str):
     </p:clrMapOvr>
 </p:sld>'''
         pptx.writestr('ppt/slides/slide1.xml', slide1)
-        
+
         # ppt/slides/slide2.xml (slide with table)
         slide2 = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <p:sld xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
@@ -512,7 +519,7 @@ def create_complex_pptx(output_path: str):
     </p:clrMapOvr>
 </p:sld>'''
         pptx.writestr('ppt/slides/slide2.xml', slide2)
-        
+
         # Add the same supporting files as minimal version
         slide_master = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <p:sldMaster xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
@@ -540,7 +547,14 @@ def create_complex_pptx(output_path: str):
     </p:sldLayoutIdLst>
 </p:sldMaster>'''
         pptx.writestr('ppt/slideMasters/slideMaster1.xml', slide_master)
-        
+
+        # ppt/slideMasters/_rels/slideMaster1.xml.rels
+        slide_master_rels = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+    <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/>
+</Relationships>'''
+        pptx.writestr('ppt/slideMasters/_rels/slideMaster1.xml.rels', slide_master_rels)
+
         slide_layout = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <p:sldLayout xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
              xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
@@ -567,7 +581,7 @@ def create_complex_pptx(output_path: str):
     </p:clrMapOvr>
 </p:sldLayout>'''
         pptx.writestr('ppt/slideLayouts/slideLayout1.xml', slide_layout)
-        
+
         theme = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="Office Theme">
     <a:themeElements>
@@ -612,7 +626,7 @@ def create_complex_pptx(output_path: str):
     </a:themeElements>
 </a:theme>'''
         pptx.writestr('ppt/theme/theme1.xml', theme)
-        
+
         core_props = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties"
                    xmlns:dc="http://purl.org/dc/elements/1.1/"
@@ -627,7 +641,7 @@ def create_complex_pptx(output_path: str):
     <dcterms:modified xsi:type="dcterms:W3CDTF">2024-01-01T12:00:00Z</dcterms:modified>
 </cp:coreProperties>'''
         pptx.writestr('docProps/core.xml', core_props)
-        
+
         app_props = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties"
             xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">
@@ -649,18 +663,18 @@ if __name__ == "__main__":
     # Create test directory if it doesn't exist
     test_dir = Path("tests/test_files")
     test_dir.mkdir(exist_ok=True)
-    
+
     # Create test files
     create_minimal_pptx(str(test_dir / "test_minimal.pptx"))
     create_complex_pptx(str(test_dir / "test_complex.pptx"))
-    
+
     print("Created test PowerPoint files:")
     print(f"- {test_dir / 'test_minimal.pptx'}")
     print(f"- {test_dir / 'test_complex.pptx'}")
 
 def create_large_pptx(output_path: str):
     """Create a large .pptx file for performance testing."""
-    
+
     with zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED) as pptx:
         # [Content_Types].xml
         content_types = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -668,11 +682,11 @@ def create_large_pptx(output_path: str):
     <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
     <Default Extension="xml" ContentType="application/xml"/>
     <Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-presentationml.presentation.main+xml"/>'''
-        
+
         # Add content types for multiple slides
         for i in range(1, 21):  # 20 slides
             content_types += f'\n    <Override PartName="/ppt/slides/slide{i}.xml" ContentType="application/vnd.openxmlformats-presentationml.slide+xml"/>'
-        
+
         content_types += '''
     <Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-presentationml.slideLayout+xml"/>
     <Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-presentationml.slideMaster+xml"/>
@@ -681,7 +695,7 @@ def create_large_pptx(output_path: str):
     <Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>
 </Types>'''
         pptx.writestr('[Content_Types].xml', content_types)
-        
+
         # _rels/.rels
         main_rels = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
@@ -690,47 +704,47 @@ def create_large_pptx(output_path: str):
     <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/>
 </Relationships>'''
         pptx.writestr('_rels/.rels', main_rels)
-        
+
         # ppt/_rels/presentation.xml.rels
         ppt_rels = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
     <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="slideMasters/slideMaster1.xml"/>'''
-        
+
         # Add relationships for all slides
         for i in range(1, 21):  # 20 slides
             ppt_rels += f'\n    <Relationship Id="rId{i+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide{i}.xml"/>'
-        
+
         ppt_rels += '''
     <Relationship Id="rId22" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="theme/theme1.xml"/>
 </Relationships>'''
         pptx.writestr('ppt/_rels/presentation.xml.rels', ppt_rels)
-        
+
         # ppt/presentation.xml
         presentation = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<p:presentation xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" 
+<p:presentation xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
                 xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
                 xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
     <p:sldMasterIdLst>
         <p:sldMasterId id="2147483648" r:id="rId1"/>
     </p:sldMasterIdLst>
     <p:sldIdLst>'''
-        
+
         # Add slide IDs
         for i in range(1, 21):  # 20 slides
             presentation += f'\n        <p:sldId id="{255 + i}" r:id="rId{i+1}"/>'
-        
+
         presentation += '''
     </p:sldIdLst>
     <p:sldSz cx="9144000" cy="6858000"/>
     <p:notesSz cx="6858000" cy="9144000"/>
 </p:presentation>'''
         pptx.writestr('ppt/presentation.xml', presentation)
-        
+
         # Create 20 slides with varying content
         for slide_num in range(1, 21):
             # Create large text content for each slide
             large_text = f"This is slide {slide_num} with lots of content. " * 100  # Repeat 100 times
-            
+
             slide_xml = f'''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <p:sld xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
        xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
@@ -800,7 +814,7 @@ def create_large_pptx(output_path: str):
     </p:clrMapOvr>
 </p:sld>'''
             pptx.writestr(f'ppt/slides/slide{slide_num}.xml', slide_xml)
-        
+
         # Add the same supporting files as other versions
         slide_master = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <p:sldMaster xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
@@ -828,7 +842,14 @@ def create_large_pptx(output_path: str):
     </p:sldLayoutIdLst>
 </p:sldMaster>'''
         pptx.writestr('ppt/slideMasters/slideMaster1.xml', slide_master)
-        
+
+        # ppt/slideMasters/_rels/slideMaster1.xml.rels
+        slide_master_rels = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+    <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/>
+</Relationships>'''
+        pptx.writestr('ppt/slideMasters/_rels/slideMaster1.xml.rels', slide_master_rels)
+
         slide_layout = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <p:sldLayout xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
              xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
@@ -855,7 +876,7 @@ def create_large_pptx(output_path: str):
     </p:clrMapOvr>
 </p:sldLayout>'''
         pptx.writestr('ppt/slideLayouts/slideLayout1.xml', slide_layout)
-        
+
         theme = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="Office Theme">
     <a:themeElements>
@@ -900,7 +921,7 @@ def create_large_pptx(output_path: str):
     </a:themeElements>
 </a:theme>'''
         pptx.writestr('ppt/theme/theme1.xml', theme)
-        
+
         core_props = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties"
                    xmlns:dc="http://purl.org/dc/elements/1.1/"
@@ -915,7 +936,7 @@ def create_large_pptx(output_path: str):
     <dcterms:modified xsi:type="dcterms:W3CDTF">2024-01-01T12:00:00Z</dcterms:modified>
 </cp:coreProperties>'''
         pptx.writestr('docProps/core.xml', core_props)
-        
+
         app_props = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties"
             xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">
@@ -937,12 +958,12 @@ def main_with_large():
     """Create test PowerPoint files including large file."""
     test_dir = Path("tests/test_files")
     test_dir.mkdir(exist_ok=True)
-    
+
     # Create test files
     create_minimal_pptx(str(test_dir / "test_minimal.pptx"))
     create_complex_pptx(str(test_dir / "test_complex.pptx"))
     create_large_pptx(str(test_dir / "test_large.pptx"))
-    
+
     print("Created test PowerPoint files:")
     print(f"- {test_dir / 'test_minimal.pptx'}")
     print(f"- {test_dir / 'test_complex.pptx'}")

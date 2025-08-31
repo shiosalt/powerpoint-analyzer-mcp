@@ -47,6 +47,7 @@ class XMLParser:
         self._register_namespaces()
         self.enable_performance_mode = enable_performance_mode
         self._element_cache = {}  # Cache for frequently accessed elements
+        self.namespaces = self.NAMESPACES  # Make namespaces accessible
     
     def _register_namespaces(self) -> None:
         """Register XML namespaces for ElementTree parsing."""

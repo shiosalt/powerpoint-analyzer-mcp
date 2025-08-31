@@ -1,0 +1,21 @@
+{
+  "mcpServers": {
+    "powerpoint-analyzer": {
+      "command": "python",
+      "args": [
+        "j:\\MCP\\powerpoint-analyzer\\start_mcp_server.py"
+      ],
+      "disabled": false,
+      "autoApprove": [
+        "extract_powerpoint_content",
+        "get_powerpoint_attributes",
+        "get_slide_info",
+        "query_slides",
+        "extract_table_data",
+        "analyze_text_formatting",
+        "filter_and_aggregate",
+        "get_presentation_overview"
+      ]
+    }
+  }
+}

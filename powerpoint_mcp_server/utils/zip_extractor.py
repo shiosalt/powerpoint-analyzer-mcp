@@ -104,7 +104,7 @@ class ZipExtractor:
         
         return self._extracted_files.get(xml_path)
     
-    def read_xml_content(self, xml_path: str) -> str:
+    def read_xml_content(self, xml_path: str) -> Optional[str]:
         """
         Read content of a specific XML file.
         
@@ -112,14 +112,16 @@ class ZipExtractor:
             xml_path: Path within the archive (e.g., 'ppt/presentation.xml')
             
         Returns:
-            XML content as string
+            XML content as string, or None if file not found
             
         Raises:
-            ZipExtractionError: If file not found or cannot be read
+            ZipExtractionError: If file cannot be read (but not if file doesn't exist)
         """
         extracted_path = self.get_specific_xml(xml_path)
         if not extracted_path:
-            raise ZipExtractionError(f"XML file not found in archive: {xml_path}")
+            # Return None instead of raising exception for missing files
+            # This is especially important for optional files like notesSlides
+            return None
         
         try:
             with open(extracted_path, 'r', encoding='utf-8') as f:

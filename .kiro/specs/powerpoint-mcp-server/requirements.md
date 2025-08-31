@@ -83,3 +83,28 @@ PowerPointファイルの内容を構造化して提供するMCPサーバを開�
 2. WHEN MCP tools are called THEN the system SHALL follow MCP protocol specifications for request/response handling
 3. WHEN errors occur THEN the system SHALL return MCP-compliant error responses
 4. WHEN the server is queried for capabilities THEN it SHALL return accurate tool descriptions and parameter specifications
+
+### Requirement 8
+
+**User Story:** As an MCP client, I want to verify server connectivity and capabilities through standard MCP protocol methods, so that I can ensure the server is functioning correctly.
+
+#### Acceptance Criteria
+
+1. WHEN a ping request is sent THEN the server SHALL respond with a valid pong response within 1 second
+2. WHEN a tools/list request is sent THEN the server SHALL return a complete list of available tools with their descriptions and parameters
+3. WHEN a model/describe request is sent THEN the server SHALL return server information including name, version, and capabilities
+4. WHEN an initialize request is sent THEN the server SHALL respond with proper initialization acknowledgment and server capabilities
+5. IF the server receives an invalid JSON-RPC request THEN it SHALL return a properly formatted error response
+6. WHEN stdio communication is used THEN the server SHALL properly handle stdin/stdout communication on Windows environments
+
+### Requirement 9
+
+**User Story:** As a developer, I want the MCP server to work reliably on Windows environments, so that I can use it with Windows-based MCP clients like Claude Code and Cline.
+
+#### Acceptance Criteria
+
+1. WHEN the server runs on Windows THEN it SHALL properly handle stdio communication without hanging or failing to respond
+2. WHEN JSON-RPC requests are sent via stdin THEN the server SHALL write responses to stdout in the correct format
+3. WHEN the server initializes THEN it SHALL complete the MCP handshake protocol successfully
+4. IF there are stdio buffering issues THEN the server SHALL implement appropriate flushing mechanisms
+5. WHEN multiple requests are sent sequentially THEN the server SHALL handle them correctly without losing responses

@@ -1,15 +1,36 @@
 # PowerPoint MCP Server
 
-A Model Context Protocol (MCP) server for extracting structured information from PowerPoint files.
+A Model Context Protocol (MCP) server for extracting structured information from PowerPoint files using FastMCP 2.0.
 
 ## Features
 
 - Extract complete structured content from PowerPoint (.pptx) files
 - Get specific attributes from slides (title, subtitle, text, tables, images, etc.)
 - Retrieve information for individual slides
+- Query slides with flexible filtering criteria
+- Extract table data with formatting detection
+- Get comprehensive presentation overview and analysis
 - Support for slide layouts, placeholders, and formatting information
 - Lightweight implementation using Python standard libraries (no external PowerPoint dependencies)
 - Direct XML parsing for fast and efficient processing
+- Built with FastMCP 2.0 for optimal performance and compatibility
+
+## Project Structure
+
+```
+powerpoint-analyzer/
+├── main.py                     # Main FastMCP server entry point
+├── powerpoint_mcp_server/      # Core server implementation
+├── tests/                      # Test files
+│   ├── test_powerpoint_fastmcp.py  # Main server tests
+│   ├── test_simple_fastmcp.py      # Simple FastMCP tests
+│   └── ...                         # Other test files
+├── tools/                      # Utility tools
+│   ├── fastmcp_example.py          # FastMCP usage examples
+│   └── start_mcp_server.py         # Server startup utility
+├── temp/                       # Temporary/archived files
+└── README.md
+```
 
 ## Installation
 
@@ -26,8 +47,14 @@ cd powerpoint-analyzer
 pip install -r requirements.txt
 ```
 
-3. Install the package:
+3. Install FastMCP:
 ```bash
+pip install fastmcp
+```
+
+4. Run the server:
+```bash
+python main.py
 pip install -e .
 ```
 
