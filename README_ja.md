@@ -204,4 +204,4 @@ python main.py
 
 ## ライセンス
 
-TBD
+このプロジェクトはApache License 2.0の下でライセンスされています - 詳細は[LICENSE](LICENSE)ファイルを参照してください。
