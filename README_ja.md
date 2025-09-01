@@ -22,6 +22,28 @@ PowerPoint対応を謳うAI Agent検索が、PowerPointファイルの構造化�
 - 直接XML解析による処理
 - FastMCP 2.0対応
 
+## プロジェクト構造
+
+```
+powerpoint-analyzer/
+├── main.py                     # メインFastMCPサーバーエントリーポイント
+├── powerpoint_mcp_server/      # コアサーバー実装
+│   ├── server.py              # メインMCPサーバー実装
+│   ├── config.py              # 設定管理
+│   ├── core/                  # コア機能
+│   └── utils/                 # ユーティリティモジュール
+├── tests/                      # テストファイル
+│   ├── test_powerpoint_fastmcp.py  # メインサーバーテスト
+│   ├── test_formatting_detection.py # 書式検出テスト
+│   └── ...                         # その他のテストファイル
+├── scripts/                    # ユーティリティスクリプト
+│   ├── health_check.py        # サーバーヘルスチェック
+│   └── start_server.py        # 代替サーバー起動
+├── requirements.txt            # Python依存関係
+├── pytest.ini                 # テスト設定
+└── README.md                   # ドキュメント
+```
+
 ## インストール
 
 1. リポジトリをクローン：

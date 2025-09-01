@@ -28,12 +28,20 @@ This tool enables outputting text written in bold and other structured informati
 powerpoint-analyzer/
 ├── main.py                     # Main FastMCP server entry point
 ├── powerpoint_mcp_server/      # Core server implementation
+│   ├── server.py              # Main MCP server implementation
+│   ├── config.py              # Configuration management
+│   ├── core/                  # Core functionality
+│   └── utils/                 # Utility modules
 ├── tests/                      # Test files
 │   ├── test_powerpoint_fastmcp.py  # Main server tests
-│   ├── test_simple_fastmcp.py      # Simple FastMCP tests
+│   ├── test_formatting_detection.py # Formatting detection tests
 │   └── ...                         # Other test files
 ├── scripts/                    # Utility scripts
-└── README.md
+│   ├── health_check.py        # Server health check
+│   └── start_server.py        # Alternative server startup
+├── requirements.txt            # Python dependencies
+├── pytest.ini                 # Test configuration
+└── README.md                   # Documentation
 ```
 
 ## Installation
@@ -168,7 +176,7 @@ python main.py
 
 ## Development
 
-### Project Structure
+### Detailed Structure
 
 ```
 powerpoint_mcp_server/
@@ -181,15 +189,17 @@ powerpoint_mcp_server/
 │   ├── attribute_processor.py  # Attribute filtering and processing
 │   ├── presentation_analyzer.py # Presentation analysis
 │   └── xml_parser.py           # XML parsing utilities
-├── utils/
-│   ├── __init__.py
-│   ├── file_validator.py       # File validation
-│   ├── zip_extractor.py        # ZIP archive handling
-│   └── cache_manager.py        # Caching utilities
-└── tests/
-    ├── test_formatting_detection.py  # Formatting detection tests
-    ├── debug_formatting_detection.py # Debug tools for formatting issues
-    └── ...                           # Other test files
+└── utils/
+    ├── __init__.py
+    ├── file_validator.py       # File validation
+    ├── zip_extractor.py        # ZIP archive handling
+    └── cache_manager.py        # Caching utilities
+
+tests/
+├── test_formatting_detection.py  # Formatting detection tests
+├── debug_formatting_detection.py # Debug tools for formatting issues
+├── test_powerpoint_fastmcp.py    # FastMCP server tests
+└── ...                           # Other test files
 ```
 
 ### Requirements
