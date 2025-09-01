@@ -176,30 +176,6 @@ python main.py
 
 ## 開発
 
-### プロジェクト構造
-
-```
-powerpoint_mcp_server/
-├── __init__.py
-├── server.py              # メインMCPサーバー実装
-├── config.py              # 設定管理
-├── core/
-│   ├── __init__.py
-│   ├── content_extractor.py    # 書式検出付きPowerPointコンテンツ抽出
-│   ├── attribute_processor.py  # 属性フィルタリングと処理
-│   ├── presentation_analyzer.py # プレゼンテーション分析
-│   └── xml_parser.py           # XML解析ユーティリティ
-├── utils/
-│   ├── __init__.py
-│   ├── file_validator.py       # ファイル検証
-│   ├── zip_extractor.py        # ZIPアーカイブ処理
-│   └── cache_manager.py        # キャッシュユーティリティ
-└── tests/
-    ├── test_formatting_detection.py  # 書式検出テスト
-    ├── debug_formatting_detection.py # 書式問題用デバッグツール
-    └── ...                           # その他のテストファイル
-```
-
 ### 要件
 
 - Python 3.8+

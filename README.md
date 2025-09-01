@@ -176,32 +176,6 @@ python main.py
 
 ## Development
 
-### Detailed Structure
-
-```
-powerpoint_mcp_server/
-├── __init__.py
-├── server.py              # Main MCP server implementation
-├── config.py              # Configuration management
-├── core/
-│   ├── __init__.py
-│   ├── content_extractor.py    # PowerPoint content extraction with formatting detection
-│   ├── attribute_processor.py  # Attribute filtering and processing
-│   ├── presentation_analyzer.py # Presentation analysis
-│   └── xml_parser.py           # XML parsing utilities
-└── utils/
-    ├── __init__.py
-    ├── file_validator.py       # File validation
-    ├── zip_extractor.py        # ZIP archive handling
-    └── cache_manager.py        # Caching utilities
-
-tests/
-├── test_formatting_detection.py  # Formatting detection tests
-├── debug_formatting_detection.py # Debug tools for formatting issues
-├── test_powerpoint_fastmcp.py    # FastMCP server tests
-└── ...                           # Other test files
-```
-
 ### Requirements
 
 - Python 3.8+
