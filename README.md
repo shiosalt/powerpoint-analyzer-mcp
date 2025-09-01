@@ -1,4 +1,4 @@
-# PowerPoint Analyze MCP Server
+# PowerPoint Analyzer MCP Server
 An MCP server that enables search and extraction using PowerPoint structure and text formatting attributes.
 
 ## Background
@@ -203,5 +203,6 @@ All formatting types have been thoroughly tested and validated:
 - ✅ **Font colors**: Multiple colors detected and analyzed
 
 ## License
+
 
 This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
