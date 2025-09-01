@@ -10,7 +10,7 @@ from pathlib import Path
 # Add the parent directory to the path so we can import the server
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from main import ServerApplication
+import main
 from powerpoint_mcp_server.config import get_config_manager
 
 
@@ -87,7 +87,7 @@ def apply_cli_config(args):
         print(f"Applied configuration overrides: {updates}")
 
 
-async def main():
+def main():
     """Main entry point for the startup script."""
     try:
         # Parse command line arguments
@@ -96,9 +96,8 @@ async def main():
         # Apply CLI configuration overrides
         apply_cli_config(args)
         
-        # Create and run the server application
-        app = ServerApplication()
-        await app.run()
+        # Run the main server function
+        main.main()
         
     except KeyboardInterrupt:
         print("\nServer stopped by user")
@@ -109,5 +108,11 @@ async def main():
 
 
 if __name__ == "__main__":
-    exit_code = asyncio.run(main())
-    sys.exit(exit_code)
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\nServer stopped by user")
+        sys.exit(0)
+    except Exception as e:
+        print(f"Server error: {e}", file=sys.stderr)
+        sys.exit(1)
