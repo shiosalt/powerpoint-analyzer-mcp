@@ -32,10 +32,7 @@ powerpoint-analyzer/
 │   ├── test_powerpoint_fastmcp.py  # Main server tests
 │   ├── test_simple_fastmcp.py      # Simple FastMCP tests
 │   └── ...                         # Other test files
-├── tools/                      # Utility tools
-│   ├── fastmcp_example.py          # FastMCP usage examples
-│   └── start_mcp_server.py         # Server startup utility
-├── temp/                       # Temporary/archived files
+├── scripts/                    # Utility scripts
 └── README.md
 ```
 
