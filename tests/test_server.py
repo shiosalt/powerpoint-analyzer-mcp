@@ -45,10 +45,7 @@ class TestPowerPointMCPServer:
         
         # Mock file validator to return invalid
         with patch.object(self.server.file_validator, 'validate_file') as mock_validate:
-            mock_validate.return_value = {
-                'is_valid': False,
-                'error': 'File not found'
-            }
+            mock_validate.return_value = (False, 'File not found')
             
             with pytest.raises(McpError) as exc_info:
                 await self.server._extract_powerpoint_content(arguments)
@@ -62,7 +59,7 @@ class TestPowerPointMCPServer:
         
         # Mock file validator
         with patch.object(self.server.file_validator, 'validate_file') as mock_validate:
-            mock_validate.return_value = {'is_valid': True}
+            mock_validate.return_value = (True, None)
             
             # Mock the process_powerpoint_file method
             with patch.object(self.server, '_process_powerpoint_file') as mock_process:
@@ -113,7 +110,7 @@ class TestPowerPointMCPServer:
         
         # Mock file validator
         with patch.object(self.server.file_validator, 'validate_file') as mock_validate:
-            mock_validate.return_value = {'is_valid': True}
+            mock_validate.return_value = (True, None)
             
             # Mock the process_powerpoint_file method
             with patch.object(self.server, '_process_powerpoint_file') as mock_process:
@@ -171,7 +168,7 @@ class TestPowerPointMCPServer:
         
         # Mock file validator
         with patch.object(self.server.file_validator, 'validate_file') as mock_validate:
-            mock_validate.return_value = {'is_valid': True}
+            mock_validate.return_value = (True, None)
             
             # Mock the process_single_slide method
             with patch.object(self.server, '_process_single_slide') as mock_process:

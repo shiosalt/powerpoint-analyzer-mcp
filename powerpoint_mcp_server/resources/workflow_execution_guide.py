@@ -42,7 +42,7 @@ WORKFLOW_EXECUTION_GUIDE = {
                         "recommended_tools": ["extract_powerpoint_content"],
                         "parameters": {
                             "attributes": ["all"],
-                            "include_formatting": true
+                            "include_formatting": True
                         },
                         "next_steps": [
                             "Review extracted content structure",
@@ -64,7 +64,7 @@ WORKFLOW_EXECUTION_GUIDE = {
                         "recommended_tools": ["get_presentation_overview"],
                         "parameters": {
                             "analysis_depth": "detailed",
-                            "include_sample_content": true
+                            "include_sample_content": True
                         },
                         "focus_areas": [
                             "Slide type distribution",
@@ -77,7 +77,7 @@ WORKFLOW_EXECUTION_GUIDE = {
                         "recommended_tools": ["get_presentation_overview"],
                         "parameters": {
                             "analysis_depth": "comprehensive",
-                            "include_sample_content": false
+                            "include_sample_content": False
                         },
                         "focus_areas": [
                             "Readability score",
@@ -109,7 +109,7 @@ WORKFLOW_EXECUTION_GUIDE = {
                         "recommended_tools": ["query_slides"],
                         "parameters": {
                             "search_criteria": {
-                                "content": {"has_tables": true}
+                                "content": {"has_tables": True}
                             },
                             "return_details": "detailed"
                         },
@@ -190,7 +190,7 @@ WORKFLOW_EXECUTION_GUIDE = {
                         "tool": "query_slides",
                         "parameters": {
                             "search_criteria": {
-                                "content": {"has_tables": true}
+                                "content": {"has_tables": True}
                             },
                             "return_details": "detailed"
                         },
@@ -208,9 +208,9 @@ WORKFLOW_EXECUTION_GUIDE = {
                                 "min_columns": 2
                             },
                             "formatting_detection": {
-                                "detect_bold": true,
-                                "detect_highlight": true,
-                                "detect_colors": true
+                                "detect_bold": True,
+                                "detect_highlight": True,
+                                "detect_colors": True
                             },
                             "output_format": "structured"
                         },
@@ -227,7 +227,7 @@ WORKFLOW_EXECUTION_GUIDE = {
                                 {
                                     "field": "formatting.bold",
                                     "condition": "equals",
-                                    "value": true
+                                    "value": True
                                 }
                             ]
                         },
@@ -241,7 +241,7 @@ WORKFLOW_EXECUTION_GUIDE = {
                         "add_parameters": {
                             "column_selection": {
                                 "specific_columns": ["Column1", "Column2"],
-                                "all_columns": false
+                                "all_columns": False
                             }
                         }
                     },
@@ -312,7 +312,7 @@ WORKFLOW_EXECUTION_GUIDE = {
                                     "contains": "target_text"
                                 },
                                 "content": {
-                                    "has_tables": true,
+                                    "has_tables": True,
                                     "object_count_min": 3
                                 }
                             },
@@ -352,8 +352,8 @@ WORKFLOW_EXECUTION_GUIDE = {
                     "slides_with_tables_and_charts": {
                         "search_criteria": {
                             "content": {
-                                "has_tables": true,
-                                "has_charts": true
+                                "has_tables": True,
+                                "has_charts": True
                             }
                         }
                     }
@@ -370,7 +370,7 @@ WORKFLOW_EXECUTION_GUIDE = {
                         "tool": "get_presentation_overview",
                         "parameters": {
                             "analysis_depth": "basic",
-                            "include_sample_content": true
+                            "include_sample_content": True
                         },
                         "purpose": "Understand basic structure and content",
                         "expected_output": "Basic presentation analysis"
@@ -381,7 +381,7 @@ WORKFLOW_EXECUTION_GUIDE = {
                         "tool": "get_presentation_overview",
                         "parameters": {
                             "analysis_depth": "comprehensive",
-                            "include_sample_content": false
+                            "include_sample_content": False
                         },
                         "purpose": "Get detailed insights and recommendations",
                         "expected_output": "Comprehensive analysis with recommendations",
@@ -432,7 +432,7 @@ WORKFLOW_EXECUTION_GUIDE = {
                         "parameters": {
                             "search_criteria": {
                                 "content": {
-                                    "has_tables": true
+                                    "has_tables": True
                                 }
                             }
                         },
@@ -445,9 +445,9 @@ WORKFLOW_EXECUTION_GUIDE = {
                         "parameters": {
                             "slide_numbers": "from_step_2",
                             "formatting_detection": {
-                                "detect_bold": true,
-                                "detect_highlight": true,
-                                "detect_colors": true
+                                "detect_bold": True,
+                                "detect_highlight": True,
+                                "detect_colors": True
                             }
                         },
                         "purpose": "Extract all table data with formatting"
@@ -476,7 +476,7 @@ WORKFLOW_EXECUTION_GUIDE = {
                                 {
                                     "field": "formatting.highlight",
                                     "condition": "equals",
-                                    "value": true
+                                    "value": True
                                 }
                             ],
                             "grouping": {

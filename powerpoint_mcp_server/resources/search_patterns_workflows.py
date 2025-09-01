@@ -71,7 +71,7 @@ SEARCH_PATTERNS_WORKFLOWS = {
                         }
                     }
                 },
-                "case_insensitive": true
+                "case_insensitive": True
             },
             
             "conclusion_slides": {
@@ -108,7 +108,7 @@ SEARCH_PATTERNS_WORKFLOWS = {
                 "parameters": {
                     "search_criteria": {
                         "content": {
-                            "has_tables": true,
+                            "has_tables": True,
                             "object_count_min": 5
                         }
                     }
@@ -125,8 +125,8 @@ SEARCH_PATTERNS_WORKFLOWS = {
                 "parameters": {
                     "search_criteria": {
                         "content": {
-                            "has_images": true,
-                            "has_charts": true
+                            "has_images": True,
+                            "has_charts": True
                         }
                     }
                 },
@@ -140,9 +140,9 @@ SEARCH_PATTERNS_WORKFLOWS = {
                     "search_criteria": {
                         "content": {
                             "object_count_min": 3,
-                            "has_tables": false,
-                            "has_charts": false,
-                            "has_images": false
+                            "has_tables": False,
+                            "has_charts": False,
+                            "has_images": False
                         }
                     }
                 }
@@ -231,7 +231,7 @@ SEARCH_PATTERNS_WORKFLOWS = {
                                     "one_of": [".*financial.*", ".*budget.*", ".*revenue.*", ".*cost.*", ".*profit.*"]
                                 },
                                 "content": {
-                                    "has_tables": true
+                                    "has_tables": True
                                 }
                             }
                         }
@@ -245,8 +245,8 @@ SEARCH_PATTERNS_WORKFLOWS = {
                                 "header_contains": ["amount", "value", "cost", "revenue", "$", "€", "£"]
                             },
                             "formatting_detection": {
-                                "detect_colors": true,
-                                "detect_bold": true
+                                "detect_colors": True,
+                                "detect_bold": True
                             }
                         }
                     }
@@ -265,7 +265,7 @@ SEARCH_PATTERNS_WORKFLOWS = {
                                     "one_of": [".*status.*", ".*progress.*", ".*update.*", ".*dashboard.*"]
                                 },
                                 "content": {
-                                    "has_tables": true
+                                    "has_tables": True
                                 }
                             }
                         }
@@ -279,8 +279,8 @@ SEARCH_PATTERNS_WORKFLOWS = {
                                 "header_contains": ["status", "progress", "complete", "%", "task", "milestone"]
                             },
                             "formatting_detection": {
-                                "detect_colors": true,
-                                "detect_highlight": true
+                                "detect_colors": True,
+                                "detect_highlight": True
                             }
                         }
                     },
@@ -293,7 +293,7 @@ SEARCH_PATTERNS_WORKFLOWS = {
                                 {
                                     "field": "formatting.highlight",
                                     "condition": "equals",
-                                    "value": true
+                                    "value": True
                                 }
                             ]
                         },

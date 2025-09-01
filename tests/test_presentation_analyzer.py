@@ -111,6 +111,7 @@ class TestPresentationAnalyzer:
         slide_info = Mock()
         slide_info.title = "Presentation Title"
         slide_info.subtitle = None
+        slide_info.text_elements = []
         
         object_counts = {'shapes': 1, 'text_boxes': 1, 'images': 0, 'tables': 0, 'charts': 0}
         
@@ -128,6 +129,7 @@ class TestPresentationAnalyzer:
         slide_info = Mock()
         slide_info.title = "Section Title"
         slide_info.subtitle = "Section Subtitle"
+        slide_info.text_elements = []
         
         object_counts = {'shapes': 2, 'text_boxes': 2, 'images': 0, 'tables': 0, 'charts': 0}
         
@@ -145,6 +147,7 @@ class TestPresentationAnalyzer:
         slide_info = Mock()
         slide_info.title = "Data Table"
         slide_info.subtitle = None
+        slide_info.text_elements = []
         
         object_counts = {'shapes': 1, 'text_boxes': 1, 'images': 0, 'tables': 2, 'charts': 0}
         
@@ -162,6 +165,7 @@ class TestPresentationAnalyzer:
         slide_info = Mock()
         slide_info.title = "Sales Chart"
         slide_info.subtitle = None
+        slide_info.text_elements = []
         
         object_counts = {'shapes': 1, 'text_boxes': 1, 'images': 0, 'tables': 0, 'charts': 2}
         
@@ -179,6 +183,7 @@ class TestPresentationAnalyzer:
         slide_info = Mock()
         slide_info.title = "Product Images"
         slide_info.subtitle = None
+        slide_info.text_elements = []
         
         object_counts = {'shapes': 1, 'text_boxes': 1, 'images': 3, 'tables': 0, 'charts': 0}
         
@@ -218,6 +223,7 @@ class TestPresentationAnalyzer:
         slide_info = Mock()
         slide_info.title = None
         slide_info.subtitle = None
+        slide_info.text_elements = []
         
         object_counts = {'shapes': 0, 'text_boxes': 0, 'images': 0, 'tables': 0, 'charts': 0}
         
@@ -234,6 +240,9 @@ class TestPresentationAnalyzer:
         slide_info = Mock()
         slide_info.title = "Mixed Content"
         slide_info.subtitle = None
+        slide_info.text_elements = [
+            {'content_plain': 'Some text content'}
+        ]
         
         object_counts = {'shapes': 2, 'text_boxes': 1, 'images': 1, 'tables': 1, 'charts': 1}
         
@@ -530,6 +539,7 @@ class TestPresentationAnalyzer:
         assert len(presentation_analyzer._analysis_cache) == 0
     
     @patch('powerpoint_mcp_server.utils.zip_extractor.ZipExtractor')
+    @pytest.mark.asyncio
     async def test_analyze_presentation_integration(self, mock_zip_extractor, presentation_analyzer, sample_slide_info):
         """Test the main analyze_presentation method integration."""
         # Mock ZipExtractor
