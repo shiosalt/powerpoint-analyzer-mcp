@@ -70,3 +70,6 @@ test_mcp_*.py
 # tests/test_files/test_complex.pptx
 # tests/test_files/test_large.pptx
 # tests/test_files/test_minimal.pptx
+
+# Design documentation (development only)
+docs/
