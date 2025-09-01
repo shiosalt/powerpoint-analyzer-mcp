@@ -1,6 +1,9 @@
-# PowerPoint MCP Server
+# PowerPoint analyze MCP Server
+PowerPointの構造やテキストの書式属性を利用した検索・抽出が可能なMCPサーバーです。
 
-PowerPointファイルから構造化された情報を抽出するためのModel Context Protocol (MCP) サーバーです。
+## 背景
+PowerPoint対応を謳うAI Agent検索が、PowerPointファイルの構造化を無視しテキストのみ抽出して検索するものが一般的です。
+太字で記載したテキストを出力するなどを可能にしました。
 
 ## 機能
 
@@ -21,8 +24,6 @@ PowerPointファイルから構造化された情報を抽出するためのMode
 
 ## インストール
 
-### スタンドアロン使用の場合
-
 1. リポジトリをクローン：
 ```bash
 git clone <repository-url>
@@ -34,22 +35,57 @@ cd powerpoint-analyzer
 pip install -r requirements.txt
 ```
 
-3. パッケージをインストール：
-```bash
-pip install -e .
+3. AIエージェント（Claude Desktop等）の設定ファイルに以下を追加：
+
+**mcp_settings.jsonの場所:**
+- **macOS**: `~/Library/Application Support/Claude/mcp_settings.json`
+- **Windows**: `%APPDATA%\Claude\mcp_settings.json`
+
+```json
+{
+  "mcpServers": {
+    "powerpoint-mcp-server": {
+      "command": "python",
+      "args": ["/path/to/your/powerpoint-analyzer/main.py"],
+      "env": {
+        "POWERPOINT_MCP_LOG_LEVEL": "INFO"
+      }
+    }
+  }
+}
 ```
 
-### AIエージェント統合の場合
+**実際のパスを使用した例:**
 
-1. 上記のスタンドアロンインストール手順を実行
-
-2. インストールディレクトリの絶対パスを確認：
-```bash
-pwd
-# 出力例: /Users/username/powerpoint-analyzer
+macOS/Linux:
+```json
+{
+  "mcpServers": {
+    "powerpoint-mcp-server": {
+      "command": "python",
+      "args": ["/Users/username/powerpoint-analyzer/main.py"],
+      "env": {
+        "POWERPOINT_MCP_LOG_LEVEL": "INFO"
+      }
+    }
+  }
+}
 ```
 
-3. ステップ2のパスを使用してAIエージェントを設定（下記の[AIエージェント統合](#aiエージェント統合)セクションを参照）
+Windows:
+```json
+{
+  "mcpServers": {
+    "powerpoint-mcp-server": {
+      "command": "python",
+      "args": ["C:\\Users\\username\\powerpoint-analyzer\\main.py"],
+      "env": {
+        "POWERPOINT_MCP_LOG_LEVEL": "INFO"
+      }
+    }
+  }
+}
+```
 
 ## 技術的アプローチ
 
@@ -94,11 +130,6 @@ pwd
 python main.py
 ```
 
-またはインストールされたコンソールスクリプトを使用：
-```bash
-powerpoint-mcp-server
-```
-
 ### 利用可能なツール
 
 #### コアコンテンツ抽出
@@ -119,198 +150,7 @@ powerpoint-mcp-server
 11. **clear_cache**: キャッシュをクリア
 12. **reload_file_content**: キャッシュをクリアして再抽出によりファイルコンテンツを再読み込み
 
-## AIエージェント統合
 
-このMCPサーバーは、Claude Desktop、Claude Code、その他のMCP対応アプリケーションなど、Model Context ProtocolをサポートするAIエージェントと統合できます。
-
-### Claude Desktop設定
-
-Claude Desktopの`mcp_settings.json`ファイルに以下の設定を追加してください：
-
-**mcp_settings.jsonの場所:**
-- **macOS**: `~/Library/Application Support/Claude/mcp_settings.json`
-- **Windows**: `%APPDATA%\Claude\mcp_settings.json`
-
-```json
-{
-  "mcpServers": {
-    "powerpoint-mcp-server": {
-      "command": "python",
-      "args": ["/path/to/your/powerpoint-analyzer/main.py"],
-      "env": {
-        "POWERPOINT_MCP_LOG_LEVEL": "INFO",
-        "POWERPOINT_MCP_MAX_FILE_SIZE": "100",
-        "POWERPOINT_MCP_CACHE_ENABLED": "true"
-      }
-    }
-  }
-}
-```
-
-**実際のパスを使用した例:**
-
-macOS/Linux:
-```json
-{
-  "mcpServers": {
-    "powerpoint-mcp-server": {
-      "command": "python",
-      "args": ["/Users/username/powerpoint-analyzer/main.py"],
-      "env": {
-        "POWERPOINT_MCP_LOG_LEVEL": "INFO"
-      }
-    }
-  }
-}
-```
-
-Windows:
-```json
-{
-  "mcpServers": {
-    "powerpoint-mcp-server": {
-      "command": "python",
-      "args": ["C:\\Users\\username\\powerpoint-analyzer\\main.py"],
-      "env": {
-        "POWERPOINT_MCP_LOG_LEVEL": "INFO"
-      }
-    }
-  }
-}
-```
-
-### Claude Code設定
-
-Claude Codeの場合、`mcp_settings.json`を作成または更新してください：
-
-```json
-{
-  "mcpServers": {
-    "powerpoint-analyzer": {
-      "command": "python",
-      "args": ["/absolute/path/to/powerpoint-analyzer/main.py"],
-      "env": {
-        "POWERPOINT_MCP_LOG_LEVEL": "DEBUG",
-        "POWERPOINT_MCP_DEBUG": "true"
-      }
-    }
-  }
-}
-```
-
-### 代替案: 起動スクリプトの使用
-
-より多くの設定オプションのために拡張起動スクリプトを使用することもできます：
-
-```json
-{
-  "mcpServers": {
-    "powerpoint-mcp-server": {
-      "command": "python",
-      "args": [
-        "/path/to/your/powerpoint-analyzer/scripts/start_server.py",
-        "--log-level", "INFO",
-        "--max-file-size", "150"
-      ]
-    }
-  }
-}
-```
-
-### 設定オプション
-
-AIエージェントと統合する際、環境変数を使用してサーバーの動作をカスタマイズできます：
-
-| 環境変数 | デフォルト | 説明 |
-|---------|-----------|------|
-| `POWERPOINT_MCP_LOG_LEVEL` | `INFO` | ログレベル (DEBUG, INFO, WARNING, ERROR, CRITICAL) |
-| `POWERPOINT_MCP_MAX_FILE_SIZE` | `100` | 最大ファイルサイズ（MB） |
-| `POWERPOINT_MCP_TIMEOUT` | `300` | 処理タイムアウト（秒） |
-| `POWERPOINT_MCP_CACHE_ENABLED` | `true` | キャッシュの有効/無効 |
-| `POWERPOINT_MCP_DEBUG` | `false` | デバッグモードの有効化 |
-
-### AIエージェントでの使用例
-
-設定後、AIエージェントに以下のような依頼ができます：
-
-1. **プレゼンテーション構造の分析**:
-   ```
-   /Users/username/Documents/quarterly-report.pptxのプレゼンテーションからコンテンツを抽出してください
-   ```
-
-2. **特定のスライド情報の取得**:
-   ```
-   /Users/username/Documents/quarterly-report.pptxのスライド3からタイトルとテキストコンテンツを取得できますか？
-   ```
-
-3. **特定の属性の抽出**:
-   ```
-   /Users/username/Documents/quarterly-report.pptxの全スライドからタイトルとオブジェクト数のみを取得してください
-   ```
-
-4. **プレゼンテーションメタデータの分析**:
-   ```
-   /Users/username/Documents/quarterly-report.pptxのスライドサイズと総スライド数は何ですか？
-   ```
-
-5. **テーブルと構造化データの抽出**:
-   ```
-   /Users/username/Documents/quarterly-report.pptxからテーブルを抽出して、その内容を表示してください
-   ```
-
-6. **テキスト書式の分析**:
-   ```
-   /Users/username/Documents/quarterly-report.pptxから太字テキストを抽出して、どのスライドに表示されているか教えてください
-   ```
-
-7. **書式サマリーの取得**:
-   ```
-   /Users/username/Documents/quarterly-report.pptxのテキスト書式（太字、斜体、下線など）を分析できますか？
-   ```
-
-8. **特定の書式タイプの抽出**:
-   ```
-   /Users/username/Documents/quarterly-report.pptxから太字と斜体の書式が適用されたテキストを抽出してください
-   ```
-
-### AIエージェント統合のトラブルシューティング
-
-1. **サーバーが起動しない**: `mcp_settings.json`のパスが絶対パスで正しいことを確認
-2. **権限エラー**: Python実行ファイルとスクリプトファイルに適切な権限があることを確認
-3. **ファイルアクセスの問題**: AIエージェントが分析したいPowerPointファイルにアクセスできることを確認
-4. **デバッグ情報**: 詳細なログのために`POWERPOINT_MCP_DEBUG=true`を設定
-
-### ヘルスチェック
-
-AIエージェントで設定する前に、サーバーが正しく動作することを確認してください：
-
-```bash
-python scripts/health_check.py
-```
-
-これにより、すべての依存関係と設定が検証されます。
-
-### AIエージェント統合の確認
-
-AIエージェントを設定した後：
-
-1. **AIエージェントを再起動**（Claude Desktop、Claude Codeなど）
-
-2. **サーバーが認識されているか確認**: AIエージェントに質問してください：
-   ```
-   利用可能なMCPツールは何ですか？
-   ```
-   PowerPoint MCPサーバーツールがリストに表示されるはずです。
-
-3. **サンプルファイルでテスト**: PowerPointファイルからコンテンツを抽出して、すべてが正しく動作することを確認してください。
-
-4. **ログを確認**: 問題が発生した場合は、AIエージェントのログを確認するか、デバッグモードを有効にしてください：
-   ```json
-   "env": {
-     "POWERPOINT_MCP_LOG_LEVEL": "DEBUG",
-     "POWERPOINT_MCP_DEBUG": "true"
-   }
-   ```
 
 ## 開発
 

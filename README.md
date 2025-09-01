@@ -41,8 +41,6 @@ powerpoint-analyzer/
 
 ## Installation
 
-### For Standalone Use
-
 1. Clone the repository:
 ```bash
 git clone <repository-url>
@@ -54,28 +52,57 @@ cd powerpoint-analyzer
 pip install -r requirements.txt
 ```
 
-3. Install FastMCP:
-```bash
-pip install fastmcp
+3. Configure your AI agent (Claude Desktop, etc.) by adding the following to your configuration file:
+
+**Location of mcp_settings.json:**
+- **macOS**: `~/Library/Application Support/Claude/mcp_settings.json`
+- **Windows**: `%APPDATA%\Claude\mcp_settings.json`
+
+```json
+{
+  "mcpServers": {
+    "powerpoint-mcp-server": {
+      "command": "python",
+      "args": ["/path/to/your/powerpoint-analyzer/main.py"],
+      "env": {
+        "POWERPOINT_MCP_LOG_LEVEL": "INFO"
+      }
+    }
+  }
+}
 ```
 
-4. Run the server:
-```bash
-python main.py
-pip install -e .
+**Example with actual paths:**
+
+macOS/Linux:
+```json
+{
+  "mcpServers": {
+    "powerpoint-mcp-server": {
+      "command": "python",
+      "args": ["/Users/username/powerpoint-analyzer/main.py"],
+      "env": {
+        "POWERPOINT_MCP_LOG_LEVEL": "INFO"
+      }
+    }
+  }
+}
 ```
 
-### For AI Agent Integration
-
-1. Follow the standalone installation steps above
-
-2. Note the absolute path to your installation directory:
-```bash
-pwd
-# Example output: /Users/username/powerpoint-analyzer
+Windows:
+```json
+{
+  "mcpServers": {
+    "powerpoint-mcp-server": {
+      "command": "python",
+      "args": ["C:\\Users\\username\\powerpoint-analyzer\\main.py"],
+      "env": {
+        "POWERPOINT_MCP_LOG_LEVEL": "INFO"
+      }
+    }
+  }
+}
 ```
-
-3. Configure your AI agent using the path from step 2 (see [AI Agent Integration](#ai-agent-integration) section below)
 
 ## Technical Approach
 
@@ -120,11 +147,6 @@ The server provides text formatting detection capabilities:
 python main.py
 ```
 
-Or using the installed console script:
-```bash
-powerpoint-mcp-server
-```
-
 ### Available Tools
 
 #### Core Content Extraction
@@ -145,198 +167,7 @@ powerpoint-mcp-server
 11. **clear_cache**: Clear the cache
 12. **reload_file_content**: Reload file content by clearing cache and re-extracting
 
-## AI Agent Integration
 
-This MCP server can be integrated with AI agents that support the Model Context Protocol, such as Claude Desktop, Claude Code, and other MCP-compatible applications.
-
-### Claude Desktop Configuration
-
-Add the following configuration to your Claude Desktop `mcp_settings.json` file:
-
-**Location of mcp_settings.json:**
-- **macOS**: `~/Library/Application Support/Claude/mcp_settings.json`
-- **Windows**: `%APPDATA%\Claude\mcp_settings.json`
-
-```json
-{
-  "mcpServers": {
-    "powerpoint-mcp-server": {
-      "command": "python",
-      "args": ["/path/to/your/powerpoint-analyzer/main.py"],
-      "env": {
-        "POWERPOINT_MCP_LOG_LEVEL": "INFO",
-        "POWERPOINT_MCP_MAX_FILE_SIZE": "100",
-        "POWERPOINT_MCP_CACHE_ENABLED": "true"
-      }
-    }
-  }
-}
-```
-
-**Example with actual paths:**
-
-macOS/Linux:
-```json
-{
-  "mcpServers": {
-    "powerpoint-mcp-server": {
-      "command": "python",
-      "args": ["/Users/username/powerpoint-analyzer/main.py"],
-      "env": {
-        "POWERPOINT_MCP_LOG_LEVEL": "INFO"
-      }
-    }
-  }
-}
-```
-
-Windows:
-```json
-{
-  "mcpServers": {
-    "powerpoint-mcp-server": {
-      "command": "python",
-      "args": ["C:\\Users\\username\\powerpoint-analyzer\\main.py"],
-      "env": {
-        "POWERPOINT_MCP_LOG_LEVEL": "INFO"
-      }
-    }
-  }
-}
-```
-
-### Claude Code Configuration
-
-For Claude Code, create or update your `mcp_settings.json`:
-
-```json
-{
-  "mcpServers": {
-    "powerpoint-analyzer": {
-      "command": "python",
-      "args": ["/absolute/path/to/powerpoint-analyzer/main.py"],
-      "env": {
-        "POWERPOINT_MCP_LOG_LEVEL": "DEBUG",
-        "POWERPOINT_MCP_DEBUG": "true"
-      }
-    }
-  }
-}
-```
-
-### Alternative: Using the Startup Script
-
-You can also use the startup script for configuration options:
-
-```json
-{
-  "mcpServers": {
-    "powerpoint-mcp-server": {
-      "command": "python",
-      "args": [
-        "/path/to/your/powerpoint-analyzer/scripts/start_server.py",
-        "--log-level", "INFO",
-        "--max-file-size", "150"
-      ]
-    }
-  }
-}
-```
-
-### Configuration Options
-
-When integrating with AI agents, you can customize the server behavior using environment variables:
-
-| Environment Variable | Default | Description |
-|---------------------|---------|-------------|
-| `POWERPOINT_MCP_LOG_LEVEL` | `INFO` | Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL) |
-| `POWERPOINT_MCP_MAX_FILE_SIZE` | `100` | Maximum file size in MB |
-| `POWERPOINT_MCP_TIMEOUT` | `300` | Processing timeout in seconds |
-| `POWERPOINT_MCP_CACHE_ENABLED` | `true` | Enable/disable caching |
-| `POWERPOINT_MCP_DEBUG` | `false` | Enable debug mode |
-
-### Usage Examples with AI Agents
-
-Once configured, you can ask your AI agent to:
-
-1. **Analyze a presentation structure**:
-   ```
-   Please extract the complete content from my presentation at /Users/username/Documents/quarterly-report.pptx
-   ```
-
-2. **Get specific slide information**:
-   ```
-   Can you get the title and text content from slide 3 of /Users/username/Documents/quarterly-report.pptx?
-   ```
-
-3. **Extract specific attributes**:
-   ```
-   Please get only the titles and object counts from all slides in /Users/username/Documents/quarterly-report.pptx
-   ```
-
-4. **Analyze presentation metadata**:
-   ```
-   What are the slide dimensions and total number of slides in /Users/username/Documents/quarterly-report.pptx?
-   ```
-
-5. **Extract tables and structured data**:
-   ```
-   Please extract all tables from /Users/username/Documents/quarterly-report.pptx and show me their content
-   ```
-
-6. **Analyze text formatting**:
-   ```
-   Please extract all bold text from /Users/username/Documents/quarterly-report.pptx and show me which slides they appear on
-   ```
-
-7. **Get formatting summary**:
-   ```
-   Can you analyze all text formatting (bold, italic, underline, etc.) in /Users/username/Documents/quarterly-report.pptx?
-   ```
-
-8. **Extract specific formatting types**:
-   ```
-   Please extract all text with bold and italic formatting from /Users/username/Documents/quarterly-report.pptx
-   ```
-
-### Troubleshooting AI Agent Integration
-
-1. **Server not starting**: Check the path in your `mcp_settings.json` is absolute and correct
-2. **Permission errors**: Ensure the Python executable and script files have proper permissions
-3. **File access issues**: Make sure the AI agent has access to the PowerPoint files you want to analyze
-4. **Debug information**: Set `POWERPOINT_MCP_DEBUG=true` for detailed logging
-
-### Health Check
-
-Before configuring with an AI agent, verify the server works correctly:
-
-```bash
-python scripts/health_check.py
-```
-
-This will validate all dependencies and configuration settings.
-
-### Verifying AI Agent Integration
-
-After configuring your AI agent:
-
-1. **Restart your AI agent** (Claude Desktop, Claude Code, etc.)
-
-2. **Check if the server is recognized**: Ask your AI agent:
-   ```
-   What MCP tools do you have available?
-   ```
-   You should see the PowerPoint MCP server tools listed.
-
-3. **Test with a sample file**: Try extracting content from a PowerPoint file to ensure everything works correctly.
-
-4. **Check logs**: If issues occur, check the AI agent's logs or enable debug mode:
-   ```json
-   "env": {
-     "POWERPOINT_MCP_LOG_LEVEL": "DEBUG",
-     "POWERPOINT_MCP_DEBUG": "true"
-   }
-   ```
 
 ## Development
 
