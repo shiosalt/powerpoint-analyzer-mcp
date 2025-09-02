@@ -63,7 +63,7 @@ class CellFormatting:
     strikethrough: bool = False
     font_color: Optional[str] = None
     background_color: Optional[str] = None
-    font_size: Optional[int] = None
+    font_size: Optional[float] = None
     hyperlink: Optional[str] = None
 
 
@@ -447,8 +447,15 @@ class EnhancedTableExtractor:
                         if font_size_elem is not None:
                             sz = font_size_elem.get('val')
                             if sz:
-                                # Font size in PowerPoint is in hundredths of a point
-                                formatting.font_size = int(sz) // 100
+                                try:
+                                    # Font size in PowerPoint is in hundredths of a point
+                                    formatting.font_size = float(sz) / 100.0
+                                except (ValueError, TypeError) as e:
+                                    logger.warning(f"Failed to parse font size '{sz}': {e}")
+                        else:
+                            # No explicit font size found - use default for table text
+                            formatting.font_size = 11.0  # Default table font size
+                            logger.debug("No explicit font size found in table cell, using default: 11.0pt")
                         
                         # Check for highlight
                         if formatting_detection.detect_highlight:
@@ -464,9 +471,14 @@ class EnhancedTableExtractor:
                         tx_body, './/a:hlinkClick'
                     )
                     if hyperlinks:
-                        # For now, just mark that there's a hyperlink
-                        # In a full implementation, we'd resolve the relationship ID
-                        formatting.hyperlink = "present"
+                        # Extract the relationship ID
+                        hyperlink = hyperlinks[0]  # Take the first hyperlink
+                        r_id = hyperlink.get('id')
+                        if r_id:
+                            formatting.hyperlink = r_id
+                            logger.debug(f"Found hyperlink with relationship ID: {r_id}")
+                        else:
+                            formatting.hyperlink = "present"
             
             return formatting
             

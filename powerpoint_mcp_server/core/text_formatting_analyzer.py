@@ -689,11 +689,19 @@ class TextFormattingAnalyzer:
                             font_size_elem = child
                             break
                     
-                    if font_size_elem is not None:
-                        sz = font_size_elem.get('val')
-                        if sz:
-                            font_size = int(sz) // 100
+                    # Extract font size - check both attribute and child element
+                    sz = r_pr.get('sz')  # Check as attribute first
+                    if not sz and font_size_elem is not None:
+                        sz = font_size_elem.get('val')  # Check as child element
+                    
+                    if sz:
+                        try:
+                            font_size = float(sz) / 100.0
                             formatting['font_sizes'].append(font_size)
+                            logger.debug(f"Extracted font size: {font_size} from sz value: {sz}")
+                        except (ValueError, TypeError) as e:
+                            logger.warning(f"Failed to parse font size '{sz}': {e}")
+                    # Don't add default font size here - let the calling code handle defaults
                     
                     # Extract font color - look for solidFill child
                     solid_fill = None
@@ -714,7 +722,19 @@ class TextFormattingAnalyzer:
                 element, './/a:hlinkClick'
             )
             if hyperlinks:
-                formatting['hyperlinks'] = [hl.get('id', 'unknown') for hl in hyperlinks]
+                # Extract relationship IDs from hyperlinks
+                hyperlink_ids = []
+                for hl in hyperlinks:
+                    # Try different attribute names for the relationship ID
+                    r_id = hl.get('id') or hl.get('r:id') or hl.get('{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id')
+                    if r_id:
+                        hyperlink_ids.append(r_id)
+                        logger.debug(f"Found hyperlink with relationship ID: {r_id}")
+                    else:
+                        hyperlink_ids.append('unknown')
+                        logger.debug("Found hyperlink but could not extract relationship ID")
+                
+                formatting['hyperlinks'] = hyperlink_ids
                 formatting['has_formatting'] = True
             
             # Remove duplicates
