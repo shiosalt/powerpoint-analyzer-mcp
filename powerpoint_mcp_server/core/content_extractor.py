@@ -52,7 +52,7 @@ class TextElement:
     """Information about a text element with formatting."""
     content_plain: str
     content_formatted: str
-    font_sizes: List[int] = field(default_factory=list)
+    font_sizes: List[float] = field(default_factory=list)
     font_colors: List[str] = field(default_factory=list)
     hyperlinks: List[str] = field(default_factory=list)
     bolded: int = 0
@@ -552,10 +552,23 @@ class ContentExtractor:
             text_element.content_plain = '\n'.join(paragraph_texts_plain)
             text_element.content_formatted = '\n'.join(paragraph_texts_formatted)
             
+            # Debug: Log font sizes before deduplication
+            logger.debug(f"Font sizes before deduplication: {text_element.font_sizes}")
+            
+            # Add context-aware default font size if none found
+            if not text_element.font_sizes:
+                # Determine default based on context (title vs content)
+                default_size = self._get_default_font_size(shape)
+                text_element.font_sizes.append(default_size)
+                logger.debug(f"Added context-aware default font size: {default_size}pt")
+            
             # Remove duplicates from lists
             text_element.font_sizes = list(set(text_element.font_sizes))
             text_element.font_colors = list(set(text_element.font_colors))
             text_element.hyperlinks = list(set(text_element.hyperlinks))
+            
+            # Debug: Log font sizes after deduplication
+            logger.debug(f"Font sizes after deduplication: {text_element.font_sizes}")
             
             return text_element if text_element.content_plain.strip() or text_element.hyperlinks else None
             
@@ -594,9 +607,9 @@ class ContentExtractor:
                     hyperlink, 'id', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships'
                 )
                 if r_id:
-                    # For now, just store the relationship ID
-                    # In a full implementation, we'd resolve this to the actual URL
+                    # Store the relationship ID for now - we'll resolve it later if needed
                     text_element.hyperlinks.append(r_id)
+                    logger.debug(f"Found hyperlink with relationship ID: {r_id}")
             
             return ''.join(plain_parts), ''.join(formatted_parts)
             
@@ -628,6 +641,8 @@ class ContentExtractor:
             r_pr = self.xml_parser.find_element_with_namespace(run, './/a:rPr')
             if r_pr is not None:
                 formatted_text = self._apply_text_formatting(text_content, r_pr, text_element)
+            # Note: If no run properties found, we don't add a default font size here
+            # The default will be added at the text element level if no font sizes are found
             
             return text_content, formatted_text
             
@@ -657,14 +672,24 @@ class ContentExtractor:
                 logger.debug(f"Processing run properties for text: '{text[:50]}...'")
                 logger.debug(f"Run properties XML: {ET.tostring(r_pr, encoding='unicode')}")
             
-            # Extract font size
-            font_size_elem = self.xml_parser.find_element_with_namespace(r_pr, './/a:sz')
-            if font_size_elem is not None:
-                sz = font_size_elem.get('val')
-                if sz:
+            # Extract font size - check both attribute and child element
+            sz = r_pr.get('sz')  # Check as attribute first
+            if not sz:
+                # Check as child element
+                font_size_elem = self.xml_parser.find_element_with_namespace(r_pr, './/a:sz')
+                if font_size_elem is not None:
+                    sz = font_size_elem.get('val')
+            
+            if sz:
+                try:
                     # Font size in PowerPoint is in hundredths of a point
-                    font_size = int(sz) // 100
+                    font_size = float(sz) / 100.0
                     text_element.font_sizes.append(font_size)
+                    logger.debug(f"Extracted font size: {font_size} from sz value: {sz}")
+                except (ValueError, TypeError) as e:
+                    logger.warning(f"Failed to parse font size '{sz}': {e}")
+            # Note: If no explicit font size found, we don't add a default here
+            # The default will be added at the text element level if no font sizes are found
             
             # Extract font color
             solid_fill = self.xml_parser.find_element_with_namespace(r_pr, './/a:solidFill')
@@ -795,6 +820,64 @@ class ContentExtractor:
             logger.error(f"Failed to extract text elements for slide {slide_number}: {e}")
             return []
     
+    def _resolve_hyperlink_relationships(self, extractor, slide_number: int, text_elements: List[Dict[str, Any]]) -> None:
+        """
+        Resolve hyperlink relationship IDs to actual URLs.
+        
+        Args:
+            extractor: ZipExtractor instance
+            slide_number: Slide number (1-based)
+            text_elements: List of text elements to update
+        """
+        try:
+            # Read the slide relationships file
+            rels_file = f'ppt/slides/_rels/slide{slide_number}.xml.rels'
+            rels_content = extractor.read_xml_content(rels_file)
+            
+            if not rels_content:
+                logger.debug(f"No relationships file found for slide {slide_number}")
+                return
+            
+            # Parse relationships
+            rels_root = self.xml_parser.parse_xml_string(rels_content)
+            relationships = {}
+            
+            # Extract all relationships
+            rel_elements = self.xml_parser.find_elements_with_namespace(
+                rels_root, './/r:Relationship',
+                {'r': 'http://schemas.openxmlformats.org/package/2006/relationships'}
+            )
+            
+            for rel in rel_elements:
+                rel_id = rel.get('Id')
+                target = rel.get('Target')
+                rel_type = rel.get('Type')
+                
+                if rel_id and target:
+                    relationships[rel_id] = {
+                        'target': target,
+                        'type': rel_type
+                    }
+                    logger.debug(f"Found relationship {rel_id} -> {target}")
+            
+            # Resolve hyperlinks in text elements
+            for text_elem in text_elements:
+                if 'hyperlinks' in text_elem and text_elem['hyperlinks']:
+                    resolved_links = []
+                    for link in text_elem['hyperlinks']:
+                        if link in relationships:
+                            target = relationships[link]['target']
+                            resolved_links.append(target)
+                            logger.debug(f"Resolved hyperlink {link} to {target}")
+                        else:
+                            # Keep original if not found in relationships
+                            resolved_links.append(link)
+                            logger.debug(f"Could not resolve hyperlink {link}")
+                    text_elem['hyperlinks'] = resolved_links
+                    
+        except Exception as e:
+            logger.warning(f"Failed to resolve hyperlink relationships for slide {slide_number}: {e}")
+
     def _extract_cell_text_content(self, cell) -> Optional[str]:
         """
         Extract text content from a table cell.
@@ -1575,3 +1658,469 @@ class ContentExtractor:
             logger.debug(f"Cleaned up {removed} expired cache entries")
             return removed
         return 0
+    
+    def resolve_hyperlinks(self, slide_info: SlideInfo, slide_rels_content: Optional[str]) -> None:
+        """
+        Resolve hyperlink relationship IDs to actual URLs.
+        
+        Args:
+            slide_info: SlideInfo object to update with resolved hyperlinks
+            slide_rels_content: XML content of slide relationships file
+        """
+        if not slide_rels_content:
+            return
+            
+        try:
+            # Parse the relationships XML
+            rels_root = ET.fromstring(slide_rels_content)
+            
+            # Build a mapping of relationship IDs to targets
+            rel_map = {}
+            for rel in rels_root.findall('.//{http://schemas.openxmlformats.org/package/2006/relationships}Relationship'):
+                rel_id = rel.get('Id')
+                target = rel.get('Target')
+                rel_type = rel.get('Type')
+                
+                if rel_id and target and 'hyperlink' in rel_type.lower():
+                    rel_map[rel_id] = target
+            
+            # Resolve hyperlinks in text elements
+            for text_element in slide_info.text_elements:
+                if text_element.get('hyperlinks'):
+                    resolved_links = []
+                    for link_id in text_element['hyperlinks']:
+                        if link_id in rel_map:
+                            resolved_links.append(rel_map[link_id])
+                        else:
+                            resolved_links.append(link_id)  # Keep original if not found
+                    text_element['hyperlinks'] = resolved_links
+                    
+        except Exception as e:
+            logger.warning(f"Failed to resolve hyperlinks: {e}")
+    
+    def _resolve_hyperlink_relationships(self, extractor, slide_number: int, text_elements: List[Dict[str, Any]]) -> None:
+        """
+        Resolve hyperlink relationship IDs to actual URLs using slide relationships.
+        
+        Args:
+            extractor: ZipExtractor instance
+            slide_number: Slide number (1-based)
+            text_elements: List of text elements to update with resolved hyperlinks
+        """
+        try:
+            # Get slide relationships file
+            rels_file = f'ppt/slides/_rels/slide{slide_number}.xml.rels'
+            rels_content = extractor.read_xml_content(rels_file)
+            
+            if not rels_content:
+                logger.debug(f"No relationships file found for slide {slide_number}")
+                return
+            
+            # Parse the relationships XML
+            rels_root = ET.fromstring(rels_content)
+            
+            # Build a mapping of relationship IDs to targets
+            rel_map = {}
+            for rel in rels_root.findall('.//{http://schemas.openxmlformats.org/package/2006/relationships}Relationship'):
+                rel_id = rel.get('Id')
+                target = rel.get('Target')
+                rel_type = rel.get('Type')
+                
+                if rel_id and target and 'hyperlink' in rel_type.lower():
+                    rel_map[rel_id] = target
+                    logger.debug(f"Found hyperlink relationship: {rel_id} -> {target}")
+            
+            # Resolve hyperlinks in text elements
+            for text_element in text_elements:
+                # Handle both dictionary and object formats
+                hyperlinks = None
+                if isinstance(text_element, dict):
+                    hyperlinks = text_element.get('hyperlinks')
+                else:
+                    # Assume it's a TextElement object
+                    hyperlinks = getattr(text_element, 'hyperlinks', None)
+                
+                if hyperlinks:
+                    resolved_links = []
+                    for link_id in hyperlinks:
+                        if link_id in rel_map:
+                            resolved_links.append(rel_map[link_id])
+                            logger.debug(f"Resolved hyperlink {link_id} to {rel_map[link_id]}")
+                        else:
+                            resolved_links.append(link_id)  # Keep original if not found
+                            logger.debug(f"Could not resolve hyperlink {link_id}")
+                    
+                    # Update the hyperlinks
+                    if isinstance(text_element, dict):
+                        text_element['hyperlinks'] = resolved_links
+                    else:
+                        text_element.hyperlinks = resolved_links
+                    
+        except Exception as e:
+            logger.warning(f"Failed to resolve hyperlink relationships for slide {slide_number}: {e}")
+    
+    def _get_default_font_size(self, shape: ET.Element) -> float:
+        """
+        Get context-aware default font size based on shape type.
+        
+        Args:
+            shape: Shape element
+            
+        Returns:
+            Default font size in points
+        """
+        try:
+            # Check if this is a title placeholder
+            nv_sp_pr = self.xml_parser.find_element_with_namespace(shape, './/p:nvSpPr')
+            if nv_sp_pr is not None:
+                ph = self.xml_parser.find_element_with_namespace(nv_sp_pr, './/p:ph')
+                if ph is not None:
+                    placeholder_type = ph.get('type', 'content')
+                    if placeholder_type in ['title', 'ctrTitle']:
+                        return 44.0  # Default title font size
+                    elif placeholder_type in ['subTitle']:
+                        return 24.0  # Default subtitle font size
+            
+            # Default content font size
+            return 18.0
+            
+        except Exception as e:
+            logger.debug(f"Failed to determine context for default font size: {e}")
+            return 18.0
+    
+    def extract_notes(self, extractor) -> List[Dict[str, Any]]:
+        """
+        Extract notes from the PowerPoint file.
+        
+        Args:
+            extractor: ZipExtractor instance
+            
+        Returns:
+            List of note dictionaries
+        """
+        notes = []
+        
+        try:
+            logger.info("Starting notes extraction process")
+            # Build a mapping of notes files to slide numbers using relationship files
+            notes_to_slide_map = self._build_notes_slide_mapping(extractor)
+            
+            # Look for notes files
+            notes_files = []
+            for filename in extractor.list_archive_contents():
+                if filename.startswith('ppt/notesSlides/notesSlide') and filename.endswith('.xml'):
+                    notes_files.append(filename)
+                    logger.info(f"Found notes file: {filename}")
+            
+            for notes_file in notes_files:
+                notes_content = extractor.read_xml_content(notes_file)
+                if notes_content:
+                    # Get the correct slide number for this notes file using relationship mapping
+                    slide_number = notes_to_slide_map.get(notes_file)
+                    if slide_number is None:
+                        # Fallback: extract slide number from filename if mapping fails
+                        notes_number_match = re.search(r'notesSlide(\d+)\.xml', notes_file)
+                        if notes_number_match:
+                            slide_number = int(notes_number_match.group(1))
+                        else:
+                            slide_number = 1
+                    
+                    parsed_notes = self._parse_notes_content(notes_content, slide_number)
+                    if parsed_notes:
+                        notes.append({
+                            'slide_number': slide_number,
+                            'content': parsed_notes
+                        })
+            
+            # Also check for comments embedded in slide files
+            slide_files = []
+            for filename in extractor.list_archive_contents():
+                if filename.startswith('ppt/slides/slide') and filename.endswith('.xml'):
+                    slide_files.append(filename)
+            
+            for slide_file in slide_files:
+                slide_content = extractor.read_xml_content(slide_file)
+                if slide_content:
+                    # Extract slide number from filename
+                    slide_number_match = re.search(r'slide(\d+)\.xml$', slide_file)
+                    if slide_number_match:
+                        slide_number = int(slide_number_match.group(1))
+
+            
+        except Exception as e:
+            logger.warning(f"Failed to extract notes: {e}")
+        
+        logger.info(f"Notes extraction completed. Found {len(notes)} notes")
+        return notes
+    
+    def _build_notes_slide_mapping(self, extractor) -> Dict[str, int]:
+        """
+        Build a mapping of comment files to slide numbers by examining slide relationships.
+        
+        Args:
+            extractor: ZipExtractor instance
+            
+        Returns:
+            Dictionary mapping comment file paths to slide numbers
+        """
+        comment_to_slide_map = {}
+        
+        try:
+            # Examine each slide's relationship file
+            for filename in extractor.list_archive_contents():
+                if filename.startswith('ppt/slides/_rels/slide') and filename.endswith('.xml.rels'):
+                    # Extract slide number from filename (e.g., 'ppt/slides/_rels/slide3.xml.rels' -> 3)
+                    slide_filename = filename
+                    slide_number_match = re.search(r'slide(\d+)\.xml\.rels$', slide_filename)
+                    if not slide_number_match:
+                        continue
+                    
+                    slide_number = int(slide_number_match.group(1))
+                    
+                    # Read the relationships file
+                    rels_content = extractor.read_xml_content(slide_filename)
+                    if not rels_content:
+                        continue
+                    
+                    # Parse relationships and look for comment references
+                    try:
+                        rels_root = ET.fromstring(rels_content)
+                        for rel in rels_root.findall('.//{http://schemas.openxmlformats.org/package/2006/relationships}Relationship'):
+                            rel_type = rel.get('Type', '')
+                            target = rel.get('Target', '')
+                            
+                            # Check if this is a comment relationship
+                            if 'comments' in rel_type.lower() and target:
+                                # Convert relative path to absolute path
+                                # Target is like '../comments/comment1.xml'
+                                if target.startswith('../'):
+                                    comment_file_path = 'ppt/' + target[3:]  # Remove '../' and add 'ppt/'
+                                else:
+                                    comment_file_path = target
+                                
+                                comment_to_slide_map[comment_file_path] = slide_number
+                                logger.debug(f"Found comment relationship: {comment_file_path} -> slide {slide_number}")
+                    
+                    except Exception as e:
+                        logger.warning(f"Failed to parse relationships file {slide_filename}: {e}")
+        
+        except Exception as e:
+            logger.warning(f"Failed to build comment-slide mapping: {e}")
+        
+        return comment_to_slide_map
+    
+    def _parse_comment_file(self, comment_content: str, slide_number: int = 1) -> List[Dict[str, Any]]:
+        """
+        Parse a comment XML file and extract comment information.
+        
+        Args:
+            comment_content: XML content of the comment file
+            slide_number: The slide number this comment belongs to
+            
+        Returns:
+            List of comment dictionaries
+        """
+        comments = []
+        
+        try:
+            root = ET.fromstring(comment_content)
+            
+            # Find all comment elements (support multiple formats)
+            comment_patterns = [
+                './/{http://schemas.openxmlformats.org/presentationml/2006/main}cm',
+                './/{http://schemas.microsoft.com/office/powerpoint/2018/main}threadedComment',
+                './/{http://schemas.openxmlformats.org/presentationml/2006/main}comment'
+            ]
+            
+            for pattern in comment_patterns:
+                for cm in root.findall(pattern):
+                    comment_data = {
+                        'slide_number': slide_number,  # Use the correct slide number
+                        'author_id': cm.get('authorId', cm.get('author', '')),
+                        'datetime': cm.get('dt', cm.get('created', '')),
+                        'index': cm.get('idx', cm.get('id', '')),
+                        'position': {'x': 0, 'y': 0},
+                        'text': ''
+                    }
+                    
+                    # Extract position
+                    pos = cm.find('.//{http://schemas.openxmlformats.org/presentationml/2006/main}pos')
+                    if pos is not None:
+                        comment_data['position'] = {
+                            'x': int(pos.get('x', 0)),
+                            'y': int(pos.get('y', 0))
+                        }
+                    
+                    # Extract text from various possible locations
+                    text_patterns = [
+                        './/{http://schemas.openxmlformats.org/presentationml/2006/main}text',
+                        './/{http://schemas.microsoft.com/office/powerpoint/2018/main}text',
+                        './/text'
+                    ]
+                    
+                    for text_pattern in text_patterns:
+                        text_elem = cm.find(text_pattern)
+                        if text_elem is not None and text_elem.text:
+                            comment_data['text'] = text_elem.text
+                            break
+                    
+                    if comment_data['text']:  # Only add if we found text
+                        comments.append(comment_data)
+        
+        except Exception as e:
+            logger.warning(f"Failed to parse comment file: {e}")
+        
+        return comments
+    
+    def _parse_embedded_comments(self, slide_content: str, slide_number: int) -> List[Dict[str, Any]]:
+        """
+        Parse comments that are embedded directly in slide XML.
+        
+        Args:
+            slide_content: XML content of the slide
+            slide_number: The slide number
+            
+        Returns:
+            List of comment dictionaries
+        """
+        comments = []
+        
+        try:
+            root = ET.fromstring(slide_content)
+            
+            # Look for various comment element patterns
+            comment_patterns = [
+                './/{http://schemas.openxmlformats.org/presentationml/2006/main}cm',
+                './/{http://schemas.openxmlformats.org/presentationml/2006/main}comment',
+                './/{http://schemas.microsoft.com/office/powerpoint/2018/main}threadedComment'
+            ]
+            
+            for pattern in comment_patterns:
+                comment_elements = root.findall(pattern)
+                for cm in comment_elements:
+                    comment_data = {
+                        'slide_number': slide_number,
+                        'author_id': cm.get('authorId', cm.get('author', '')),
+                        'datetime': cm.get('dt', cm.get('created', '')),
+                        'index': cm.get('idx', cm.get('id', '')),
+                        'position': {'x': 0, 'y': 0},
+                        'text': ''
+                    }
+                    
+                    # Extract position
+                    pos = cm.find('.//{http://schemas.openxmlformats.org/presentationml/2006/main}pos')
+                    if pos is not None:
+                        comment_data['position'] = {
+                            'x': int(pos.get('x', 0)),
+                            'y': int(pos.get('y', 0))
+                        }
+                    
+                    # Extract text from various possible locations
+                    text_patterns = [
+                        './/{http://schemas.openxmlformats.org/presentationml/2006/main}text',
+                        './/{http://schemas.microsoft.com/office/powerpoint/2018/main}text',
+                        './/text'
+                    ]
+                    
+                    for text_pattern in text_patterns:
+                        text_elem = cm.find(text_pattern)
+                        if text_elem is not None and text_elem.text:
+                            comment_data['text'] = text_elem.text
+                            break
+                    
+                    if comment_data['text']:  # Only add if we found text
+                        comments.append(comment_data)
+                        logger.debug(f"Found embedded comment on slide {slide_number}: {comment_data['text']}")
+        
+        except Exception as e:
+            logger.warning(f"Failed to parse embedded comments for slide {slide_number}: {e}")
+        
+        return comments    
+    def _build_notes_slide_mapping(self, extractor) -> Dict[str, int]:
+        """
+        Build a mapping of notes slide files to slide numbers by examining notes relationships.
+        
+        Args:
+            extractor: ZipExtractor instance
+            
+        Returns:
+            Dictionary mapping notes slide file paths to slide numbers
+        """
+        notes_to_slide_map = {}
+        
+        try:
+            # Examine each notes slide's relationship file
+            for filename in extractor.list_archive_contents():
+                if filename.startswith('ppt/notesSlides/_rels/notesSlide') and filename.endswith('.xml.rels'):
+                    # Extract notes slide number from filename
+                    notes_filename = filename
+                    notes_number_match = re.search(r'notesSlide(\d+)\.xml\.rels$', notes_filename)
+                    if not notes_number_match:
+                        continue
+                    
+                    notes_number = int(notes_number_match.group(1))
+                    
+                    # Read the relationships file
+                    rels_content = extractor.read_xml_content(notes_filename)
+                    if not rels_content:
+                        continue
+                    
+                    # Parse relationships and look for slide references
+                    try:
+                        rels_root = ET.fromstring(rels_content)
+                        for rel in rels_root.findall('.//{http://schemas.openxmlformats.org/package/2006/relationships}Relationship'):
+                            rel_type = rel.get('Type', '')
+                            target = rel.get('Target', '')
+                            
+                            # Check if this is a slide relationship
+                            if 'slide' in rel_type.lower() and 'slide' in target and target.endswith('.xml'):
+                                # Extract slide number from target (e.g., "../slides/slide3.xml" -> 3)
+                                slide_match = re.search(r'slide(\d+)\.xml$', target)
+                                if slide_match:
+                                    slide_number = int(slide_match.group(1))
+                                    notes_file_path = f'ppt/notesSlides/notesSlide{notes_number}.xml'
+                                    notes_to_slide_map[notes_file_path] = slide_number
+                                    logger.debug(f"Found notes-slide relationship: {notes_file_path} -> slide {slide_number}")
+                    
+                    except Exception as e:
+                        logger.warning(f"Failed to parse notes relationships file {notes_filename}: {e}")
+        
+        except Exception as e:
+            logger.warning(f"Failed to build notes-slide mapping: {e}")
+        
+        return notes_to_slide_map
+    
+    def _parse_notes_content(self, notes_content: str, slide_number: int) -> str:
+        """
+        Parse text content from notes slide XML.
+        
+        Args:
+            notes_content: XML content of the notes slide
+            slide_number: The slide number this notes belongs to
+            
+        Returns:
+            Notes text content as string
+        """
+        try:
+            root = ET.fromstring(notes_content)
+            
+            # Look for text content in notes
+            # Notes slides contain text in paragraph elements
+            text_elements = root.findall('.//{http://schemas.openxmlformats.org/drawingml/2006/main}t')
+            
+            text_parts = []
+            for text_elem in text_elements:
+                if text_elem.text:
+                    text_parts.append(text_elem.text)
+            
+            if text_parts:
+                # Combine all text parts to form the notes content
+                full_text = ''.join(text_parts)
+                logger.debug(f"Found notes content for slide {slide_number}: {full_text[:50]}...")
+                return full_text
+            
+            return ""
+        
+        except Exception as e:
+            logger.warning(f"Failed to parse notes content for slide {slide_number}: {e}")
+            return ""

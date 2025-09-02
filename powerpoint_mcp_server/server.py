@@ -507,16 +507,29 @@ class PowerPointMCPServer:
                         # Extract slide content
                         slide_info = self.content_extractor.extract_slide_content(slide_xml, i)
 
-                        # Try to get notes for this slide (optional)
-                        notes_file = f'ppt/notesSlides/notesSlide{i}.xml'
+                        # Try to get notes for this slide using proper mapping only
                         notes_content = ""
                         try:
-                            notes_xml = extractor.read_xml_content(notes_file)
-                            if notes_xml:
-                                notes_content = self.content_extractor._extract_notes_content(notes_xml)
+                            # Use the notes mapping to find the correct notes file for this slide
+                            notes_to_slide_map = self.content_extractor._build_notes_slide_mapping(extractor)
+                            # Find the notes file that corresponds to this slide
+                            for notes_file_path, mapped_slide_number in notes_to_slide_map.items():
+                                if mapped_slide_number == i:
+                                    notes_xml = extractor.read_xml_content(notes_file_path)
+                                    if notes_xml:
+                                        notes_content = self.content_extractor._extract_notes_content(notes_xml)
+                                    break
+                            # No fallback - if mapping doesn't find a notes file for this slide, 
+                            # it means there are no notes for this slide
                         except Exception:
                             # Notes file doesn't exist or can't be read - that's okay
                             notes_content = ""
+
+                        # Resolve hyperlink relationships
+                        logger.info(f"Resolving hyperlinks for slide {i}")
+                        self.content_extractor._resolve_hyperlink_relationships(
+                            extractor, i, slide_info.text_elements
+                        )
 
                         # Create slide data
                         slide_data = {
@@ -535,6 +548,12 @@ class PowerPointMCPServer:
                         }
 
                         result['slides'].append(slide_data)
+
+                # Extract notes
+                logger.info("Extracting notes from PowerPoint file")
+                notes = self.content_extractor.extract_notes(extractor)
+                logger.info(f"Found {len(notes)} notes")
+                result['notes'] = notes
 
             return result
 
@@ -564,13 +583,26 @@ class PowerPointMCPServer:
                 # Extract slide content
                 slide_info = self.content_extractor.extract_slide_content(slide_xml, slide_number)
 
-                # Try to get notes for this slide (optional)
-                notes_file = f'ppt/notesSlides/notesSlide{slide_number}.xml'
+                # Resolve hyperlink relationships
+                logger.info(f"Resolving hyperlinks for slide {slide_number}")
+                self.content_extractor._resolve_hyperlink_relationships(
+                    extractor, slide_number, slide_info.text_elements
+                )
+
+                # Try to get notes for this slide using proper mapping only
                 notes_content = ""
                 try:
-                    notes_xml = extractor.read_xml_content(notes_file)
-                    if notes_xml:
-                        notes_content = self.content_extractor._extract_notes_content(notes_xml)
+                    # Use the notes mapping to find the correct notes file for this slide
+                    notes_to_slide_map = self.content_extractor._build_notes_slide_mapping(extractor)
+                    # Find the notes file that corresponds to this slide
+                    for notes_file_path, mapped_slide_number in notes_to_slide_map.items():
+                        if mapped_slide_number == slide_number:
+                            notes_xml = extractor.read_xml_content(notes_file_path)
+                            if notes_xml:
+                                notes_content = self.content_extractor._extract_notes_content(notes_xml)
+                            break
+                    # No fallback - if mapping doesn't find a notes file for this slide, 
+                    # it means there are no notes for this slide
                 except Exception:
                     # Notes file doesn't exist or can't be read - that's okay
                     notes_content = ""
