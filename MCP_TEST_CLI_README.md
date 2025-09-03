@@ -170,6 +170,16 @@ python mcp_test_cli.py query_slides \
 python mcp_test_cli.py query_slides \
   --file_path "presentation.pptx" \
   --search_criteria "{""contains"": ""bold"", ""has_tables"": true}"
+
+# ネストしたオブジェクト（Windows CMD簡略形式）
+python mcp_test_cli.py query_slides \
+  --file_path "presentation.pptx" \
+  --search_criteria "{content: {contains_text: Slide}, layout: {type: content}}"
+
+# 配列を含む複雑なクエリ
+python mcp_test_cli.py query_slides \
+  --file_path "presentation.pptx" \
+  --search_criteria "{slide_numbers: [1, 2, 3], content: {min_elements: 2}}"
 ```
 
 ## 🔧 パラメータの指定方法
@@ -227,6 +237,14 @@ python mcp_test_cli.py query_slides \
 
 # または簡略形式（クォートは自動追加）
 --search_criteria "{has_tables: true, min_text_elements: 2}"
+
+# ネストしたオブジェクト
+--search_criteria "{""content"": {""contains_text"": ""Slide""}}"
+--search_criteria "{content: {contains_text: Slide}}"
+
+# 配列を含むオブジェクト
+--search_criteria "{""slide_numbers"": [1, 2, 3]}"
+--search_criteria "{slide_numbers: [1, 2, 3]}"
 ```
 
 ## 🧪 テスト例の実行

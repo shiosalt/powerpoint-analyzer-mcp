@@ -406,20 +406,58 @@ class MCPTestCLI:
         return cleaned_value
     
     def _fix_json_object(self, obj_str: str) -> str:
-        """Fix malformed JSON object by adding quotes around keys and string values."""
+        """Fix malformed JSON object by adding quotes around keys and string values recursively."""
         try:
             # Remove outer braces
             content = obj_str[1:-1].strip()
             if not content:
                 return "{}"
             
-            # Split by comma to get key-value pairs
-            pairs = []
-            current_pair = ""
-            brace_count = 0
-            bracket_count = 0
+            # Parse key-value pairs with proper nesting support
+            pairs = self._parse_json_pairs(content)
             
-            for char in content:
+            # Process each key-value pair
+            fixed_pairs = []
+            for key, value in pairs:
+                # Quote the key
+                clean_key = key.strip().strip('"').strip("'")
+                quoted_key = f'"{clean_key}"'
+                
+                # Handle the value recursively
+                quoted_value = self._fix_json_value(value.strip())
+                
+                fixed_pairs.append(f'{quoted_key}: {quoted_value}')
+            
+            return '{' + ', '.join(fixed_pairs) + '}'
+            
+        except Exception:
+            # If fixing fails, return original
+            return obj_str
+    
+    def _parse_json_pairs(self, content: str) -> list:
+        """Parse key-value pairs from JSON object content, handling nested structures."""
+        pairs = []
+        current_pair = ""
+        brace_count = 0
+        bracket_count = 0
+        in_quotes = False
+        quote_char = None
+        
+        i = 0
+        while i < len(content):
+            char = content[i]
+            
+            # Handle quotes
+            if char in ['"', "'"] and (i == 0 or content[i-1] != '\\'):
+                if not in_quotes:
+                    in_quotes = True
+                    quote_char = char
+                elif char == quote_char:
+                    in_quotes = False
+                    quote_char = None
+            
+            # Only count braces/brackets outside of quotes
+            if not in_quotes:
                 if char == '{':
                     brace_count += 1
                 elif char == '}':
@@ -429,50 +467,159 @@ class MCPTestCLI:
                 elif char == ']':
                     bracket_count -= 1
                 elif char == ',' and brace_count == 0 and bracket_count == 0:
-                    pairs.append(current_pair.strip())
+                    # Found a top-level comma separator
+                    if current_pair.strip():
+                        pairs.append(self._split_key_value(current_pair.strip()))
                     current_pair = ""
+                    i += 1
                     continue
-                
-                current_pair += char
             
-            if current_pair.strip():
-                pairs.append(current_pair.strip())
+            current_pair += char
+            i += 1
+        
+        # Add the last pair
+        if current_pair.strip():
+            pairs.append(self._split_key_value(current_pair.strip()))
+        
+        return pairs
+    
+    def _split_key_value(self, pair: str) -> tuple:
+        """Split a key-value pair, handling nested colons properly."""
+        # Find the first colon that's not inside quotes or nested structures
+        brace_count = 0
+        bracket_count = 0
+        in_quotes = False
+        quote_char = None
+        
+        for i, char in enumerate(pair):
+            # Handle quotes
+            if char in ['"', "'"] and (i == 0 or pair[i-1] != '\\'):
+                if not in_quotes:
+                    in_quotes = True
+                    quote_char = char
+                elif char == quote_char:
+                    in_quotes = False
+                    quote_char = None
             
-            # Process each key-value pair
-            fixed_pairs = []
-            for pair in pairs:
-                if ':' in pair:
-                    key_part, value_part = pair.split(':', 1)
-                    key = key_part.strip().strip('"').strip("'")
-                    value = value_part.strip()
-                    
-                    # Quote the key
-                    quoted_key = f'"{key}"'
-                    
-                    # Handle the value
-                    if value.lower() in ['true', 'false', 'null']:
-                        # Boolean or null values - keep as is
-                        quoted_value = value.lower()
-                    elif value.isdigit() or (value.replace('.', '', 1).isdigit() and value.count('.') <= 1):
-                        # Numeric values - keep as is
-                        quoted_value = value
-                    elif value.startswith(('"', "'")) and value.endswith(('"', "'")):
-                        # Already quoted - normalize to double quotes
-                        quoted_value = f'"{value[1:-1]}"'
-                    elif value.startswith(('[', '{')):
-                        # Nested array or object - keep as is for now
-                        quoted_value = value
-                    else:
-                        # String value - add quotes
-                        quoted_value = f'"{value}"'
-                    
-                    fixed_pairs.append(f'{quoted_key}: {quoted_value}')
+            # Only count structures outside of quotes
+            if not in_quotes:
+                if char == '{':
+                    brace_count += 1
+                elif char == '}':
+                    brace_count -= 1
+                elif char == '[':
+                    bracket_count += 1
+                elif char == ']':
+                    bracket_count -= 1
+                elif char == ':' and brace_count == 0 and bracket_count == 0:
+                    # Found the key-value separator
+                    return (pair[:i], pair[i+1:])
+        
+        # If no colon found, treat as key with empty value
+        return (pair, "")
+    
+    def _fix_json_value(self, value: str) -> str:
+        """Fix a JSON value, handling different types recursively."""
+        value = value.strip()
+        
+        # Handle empty values
+        if not value:
+            return '""'
+        
+        # Handle boolean and null values
+        if value.lower() in ['true', 'false', 'null']:
+            return value.lower()
+        
+        # Handle numeric values
+        if value.isdigit() or (value.replace('.', '', 1).replace('-', '', 1).isdigit() and value.count('.') <= 1):
+            return value
+        
+        # Handle already quoted strings
+        if (value.startswith('"') and value.endswith('"')) or (value.startswith("'") and value.endswith("'")):
+            # Normalize to double quotes
+            return f'"{value[1:-1]}"'
+        
+        # Handle nested objects
+        if value.startswith('{') and value.endswith('}'):
+            return self._fix_json_object(value)
+        
+        # Handle arrays
+        if value.startswith('[') and value.endswith(']'):
+            return self._fix_json_array(value)
+        
+        # Handle unquoted strings
+        return f'"{value}"'
+    
+    def _fix_json_array(self, arr_str: str) -> str:
+        """Fix malformed JSON array by processing each element."""
+        try:
+            # Remove outer brackets
+            content = arr_str[1:-1].strip()
+            if not content:
+                return "[]"
             
-            return '{' + ', '.join(fixed_pairs) + '}'
+            # Parse array elements
+            elements = self._parse_array_elements(content)
+            
+            # Fix each element
+            fixed_elements = []
+            for element in elements:
+                fixed_elements.append(self._fix_json_value(element.strip()))
+            
+            return '[' + ', '.join(fixed_elements) + ']'
             
         except Exception:
             # If fixing fails, return original
-            return obj_str
+            return arr_str
+    
+    def _parse_array_elements(self, content: str) -> list:
+        """Parse array elements, handling nested structures."""
+        elements = []
+        current_element = ""
+        brace_count = 0
+        bracket_count = 0
+        in_quotes = False
+        quote_char = None
+        
+        i = 0
+        while i < len(content):
+            char = content[i]
+            
+            # Handle quotes
+            if char in ['"', "'"] and (i == 0 or content[i-1] != '\\'):
+                if not in_quotes:
+                    in_quotes = True
+                    quote_char = char
+                elif char == quote_char:
+                    in_quotes = False
+                    quote_char = None
+            
+            # Only count structures outside of quotes
+            if not in_quotes:
+                if char == '{':
+                    brace_count += 1
+                elif char == '}':
+                    brace_count -= 1
+                elif char == '[':
+                    bracket_count += 1
+                elif char == ']':
+                    bracket_count -= 1
+                elif char == ',' and brace_count == 0 and bracket_count == 0:
+                    # Found a top-level comma separator
+                    if current_element.strip():
+                        elements.append(current_element.strip())
+                    current_element = ""
+                    i += 1
+                    continue
+            
+            current_element += char
+            i += 1
+        
+        # Add the last element
+        if current_element.strip():
+            elements.append(current_element.strip())
+        
+        return elements
 
 
 async def main():
