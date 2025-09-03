@@ -28,6 +28,8 @@ class SlideInfo:
     placeholders: List[Dict[str, Any]] = None
     text_elements: List[Dict[str, Any]] = None
     tables: List[Dict[str, Any]] = None
+    notes: Optional[str] = None
+    section_name: Optional[str] = None
     
     def __post_init__(self):
         if self.placeholders is None:
@@ -467,7 +469,9 @@ class ContentExtractor:
                 'title': slide_info.title,
                 'subtitle': slide_info.subtitle,
                 'placeholder_count': len(slide_info.placeholders),
-                'placeholder_types': [p['type'] for p in slide_info.placeholders]
+                'placeholder_types': [p['type'] for p in slide_info.placeholders],
+                'notes': slide_info.notes,
+                'section_name': slide_info.section_name
             }
             
         except Exception as e:
@@ -476,6 +480,127 @@ class ContentExtractor:
                 'slide_number': slide_number,
                 'error': str(e)
             }
+    
+    def extract_presentation_sections(self, presentation_xml_content: str) -> List[Dict[str, Any]]:
+        """
+        Extract presentation sections from presentation.xml.
+        
+        Args:
+            presentation_xml_content: XML content of presentation.xml
+            
+        Returns:
+            List of section dictionaries with name and slide range
+        """
+        try:
+            root = self.xml_parser.parse_xml_string(presentation_xml_content)
+            if root is None:
+                logger.warning("Failed to parse presentation.xml")
+                return []
+            
+            sections = []
+            
+            # Find section list
+            section_lst = self.xml_parser.find_element_with_namespace(root, './/p:sectionLst')
+            if section_lst is None:
+                logger.debug("No sections found in presentation")
+                return []
+            
+            # Extract each section
+            section_elements = self.xml_parser.find_elements_with_namespace(section_lst, './/p:section')
+            
+            for section_elem in section_elements:
+                section_name = section_elem.get('name', 'Unnamed Section')
+                section_id = section_elem.get('id', '')
+                
+                # Find slide ID list for this section
+                slide_id_lst = self.xml_parser.find_element_with_namespace(section_elem, './/p:sldIdLst')
+                slide_ids = []
+                
+                if slide_id_lst is not None:
+                    slide_id_elements = self.xml_parser.find_elements_with_namespace(slide_id_lst, './/p:sldId')
+                    slide_ids = [elem.get('id', '') for elem in slide_id_elements if elem.get('id')]
+                
+                sections.append({
+                    'name': section_name,
+                    'id': section_id,
+                    'slide_ids': slide_ids,
+                    'slide_count': len(slide_ids)
+                })
+                
+                logger.debug(f"Found section '{section_name}' with {len(slide_ids)} slides")
+            
+            return sections
+            
+        except Exception as e:
+            logger.error(f"Failed to extract presentation sections: {e}")
+            return []
+    
+    def extract_slide_notes(self, notes_xml_content: str) -> str:
+        """
+        Extract speaker notes from notesSlide XML.
+        
+        Args:
+            notes_xml_content: XML content of notesSlide
+            
+        Returns:
+            Speaker notes text content
+        """
+        try:
+            root = self.xml_parser.parse_xml_string(notes_xml_content)
+            if root is None:
+                logger.warning("Failed to parse notes XML")
+                return ""
+            
+            # Find notes text in the notes slide
+            notes_text_parts = []
+            
+            # Look for text in shapes within the notes slide
+            shapes = self.xml_parser.find_elements_with_namespace(root, './/p:sp')
+            
+            for shape in shapes:
+                # Check if this is a notes placeholder
+                nv_sp_pr = self.xml_parser.find_element_with_namespace(shape, './/p:nvSpPr')
+                if nv_sp_pr is not None:
+                    ph = self.xml_parser.find_element_with_namespace(nv_sp_pr, './/p:ph')
+                    if ph is not None and ph.get('type') == 'body':
+                        # This is the notes text placeholder
+                        notes_text = self._extract_shape_text_content(shape)
+                        if notes_text:
+                            notes_text_parts.append(notes_text)
+            
+            return '\n'.join(notes_text_parts) if notes_text_parts else ""
+            
+        except Exception as e:
+            logger.warning(f"Failed to extract slide notes: {e}")
+            return ""
+    
+    def map_slides_to_sections(self, sections: List[Dict[str, Any]], slide_id_mapping: Dict[str, int]) -> Dict[int, str]:
+        """
+        Map slide numbers to section names.
+        
+        Args:
+            sections: List of section dictionaries from extract_presentation_sections
+            slide_id_mapping: Mapping from slide IDs to slide numbers
+            
+        Returns:
+            Dictionary mapping slide numbers to section names
+        """
+        try:
+            slide_to_section = {}
+            
+            for section in sections:
+                section_name = section['name']
+                for slide_id in section['slide_ids']:
+                    if slide_id in slide_id_mapping:
+                        slide_number = slide_id_mapping[slide_id]
+                        slide_to_section[slide_number] = section_name
+                        logger.debug(f"Mapped slide {slide_number} to section '{section_name}'")
+            
+            return slide_to_section
+            
+        except Exception as e:
+            logger.error(f"Failed to map slides to sections: {e}")
+            return {}
     
     def _extract_text_elements(self, root: ET.Element, slide_info: SlideInfo) -> None:
         """

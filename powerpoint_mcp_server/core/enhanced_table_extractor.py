@@ -137,33 +137,71 @@ class EnhancedTableExtractor:
         
         try:
             extracted_tables = []
+            slides_processed = 0
+            slides_with_tables = 0
             
             with ZipExtractor(file_path) as extractor:
                 # Get slide XML files
-                slide_files = extractor.get_slide_xml_files()
+                slide_files_dict = extractor.get_slide_xml_files()
+                slide_files = sorted(slide_files_dict.keys())
+                total_slides = len(slide_files)
+                
+                logger.info(f"Total slides in presentation: {total_slides}")
+                logger.info(f"Requested slide numbers: {slide_numbers}")
+                
+                # Validate slide numbers
+                invalid_slides = [s for s in slide_numbers if s < 1 or s > total_slides]
+                if invalid_slides:
+                    raise ValueError(f"Invalid slide numbers: {invalid_slides}. Valid range: 1-{total_slides}")
                 
                 for slide_num in slide_numbers:
-                    if slide_num <= len(slide_files):
-                        slide_file = slide_files[slide_num - 1]
+                    try:
+                        # Convert 1-based slide number to 0-based index
+                        slide_index = slide_num - 1
+                        slide_file = slide_files[slide_index]
                         slide_xml = extractor.read_xml_content(slide_file)
+                        slides_processed += 1
+                        
+                        # Debug logging for slide number mapping
+                        logger.debug(f"Processing slide_num={slide_num}, slide_index={slide_index}, slide_file={slide_file}")
                         
                         if slide_xml:
                             tables = self._extract_tables_from_slide(
                                 slide_xml, slide_num, table_criteria,
                                 column_selection, formatting_detection
                             )
-                            extracted_tables.extend(tables)
+                            if tables:
+                                slides_with_tables += 1
+                                extracted_tables.extend(tables)
+                                logger.info(f"Found {len(tables)} tables on slide {slide_num}")
+                            else:
+                                logger.info(f"No tables found on slide {slide_num}")
+                        else:
+                            logger.warning(f"Could not read XML content for slide {slide_num}")
+                    
+                    except Exception as slide_error:
+                        logger.error(f"Error processing slide {slide_num}: {slide_error}")
+                        # Continue processing other slides
+                        continue
             
             # Format output based on requested format
             result = self._format_output(
                 extracted_tables, output_format, include_metadata
             )
             
-            logger.info(f"Extracted {len(extracted_tables)} tables")
+            # Add processing statistics to summary
+            if 'summary' in result:
+                result['summary']['slides_processed'] = slides_processed
+                result['summary']['slides_with_tables'] = slides_with_tables
+                result['summary']['total_tables_found'] = len(extracted_tables)
+            
+            logger.info(f"Extracted {len(extracted_tables)} tables from {slides_processed} slides")
             return result
             
         except Exception as e:
             logger.error(f"Error extracting tables: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             raise
     
     def _extract_tables_from_slide(
@@ -301,6 +339,9 @@ class EnhancedTableExtractor:
                         header = headers[col_index] if col_index < len(headers) else f"Column {col_index + 1}"
                         formatted_row[header] = row_data[old_key]
                 formatted_data.append(formatted_row)
+            
+            # Debug logging for slide number assignment
+            logger.debug(f"Creating EnhancedTable with slide_number={slide_number}, table_index={table_index}")
             
             # Create enhanced table
             enhanced_table = EnhancedTable(
@@ -660,7 +701,18 @@ class EnhancedTableExtractor:
                 
         except Exception as e:
             logger.warning(f"Failed to format output: {e}")
-            return {"extracted_tables": [], "summary": {"total_tables": 0}}
+            import traceback
+            logger.warning(f"Traceback: {traceback.format_exc()}")
+            return {
+                "extracted_tables": [], 
+                "summary": {
+                    "total_tables_found": 0,
+                    "total_tables": 0,
+                    "slides_with_tables": 0,
+                    "slides_processed": 0,
+                    "error": f"Failed to format output: {str(e)}"
+                }
+            }
     
     def _format_structured_output(
         self, 
@@ -671,6 +723,9 @@ class EnhancedTableExtractor:
         extracted_tables = []
         
         for table in tables:
+            # Debug logging for slide number in output formatting
+            logger.debug(f"Formatting table output: slide_number={table.slide_number}, table_index={table.table_index}")
+            
             table_dict = {
                 "slide_number": table.slide_number,
                 "table_index": table.table_index,
@@ -717,7 +772,8 @@ class EnhancedTableExtractor:
         
         # Create summary
         summary = {
-            "total_tables": len(tables),
+            "total_tables_found": len(tables),
+            "total_tables": len(tables),  # Keep for backward compatibility
             "total_rows": sum(table.rows for table in tables),
             "slides_with_tables": len(set(table.slide_number for table in tables)),
             "formatting_found": {

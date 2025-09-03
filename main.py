@@ -375,25 +375,111 @@ async def query_slides(file_path: str, search_criteria: Dict[str, Any], return_f
         
     except Exception as e:
         logger.error(f"Error in query_slides: {e}")
-        return f"Error: {str(e)}"
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        return json.dumps({
+            "error": str(e),
+            "error_type": "query_slides_error",
+            "file_path": file_path,
+            "search_criteria": search_criteria
+        }, indent=2)
 
 @mcp.tool
-async def extract_table_data(file_path: str, slide_numbers: List[int], table_criteria: Optional[Dict[str, Any]] = None, 
+async def extract_table_data(file_path: str, slide_numbers: Optional[List[int]] = None, table_criteria: Optional[Dict[str, Any]] = None, 
                       column_selection: Optional[Dict[str, Any]] = None, formatting_detection: Optional[Dict[str, Any]] = None,
                       output_format: str = "structured", include_metadata: bool = True) -> str:
     """Extract table data with flexible selection and formatting detection.
     
     Args:
         file_path: Path to the PowerPoint file (.pptx)
-        slide_numbers: Slide numbers to extract tables from
-        table_criteria: Criteria for selecting tables (optional)
-        column_selection: Configuration for column selection (optional)
-        formatting_detection: Configuration for formatting detection (optional)
-        output_format: Output format (structured, flat, grouped_by_slide)
-        include_metadata: Whether to include table metadata
+        slide_numbers: Slide numbers to extract tables from (1-based indexing). 
+                       If not provided or None, analyzes all slides in the presentation.
+                       Example: [1, 3, 5] to analyze only slides 1, 3, and 5
+        
+        table_criteria: Criteria for selecting tables (optional). Dictionary with keys:
+            - min_rows: int - Minimum number of rows required
+            - max_rows: int - Maximum number of rows allowed
+            - min_columns: int - Minimum number of columns required
+            - max_columns: int - Maximum number of columns allowed
+            - header_contains: List[str] - Headers must contain these strings
+            - header_patterns: List[str] - Headers must match these regex patterns
+            Example: {"min_rows": 2, "header_contains": ["Name", "Date"]}
+        
+        column_selection: Configuration for column selection (optional). Dictionary with keys:
+            - specific_columns: List[str] - Include only these specific column names
+            - column_patterns: List[str] - Include columns matching these regex patterns
+            - exclude_columns: List[str] - Exclude these column names
+            - all_columns: bool - Include all columns (default: True)
+            Example: {"specific_columns": ["Name", "Age"], "exclude_columns": ["ID"]}
+        
+        formatting_detection: Configuration for formatting detection (optional). Dictionary with keys:
+            - detect_bold: bool - Detect bold text formatting (default: True)
+            - detect_italic: bool - Detect italic text formatting (default: True)
+            - detect_underline: bool - Detect underlined text formatting (default: True)
+            - detect_highlight: bool - Detect highlighted text formatting (default: True)
+            - detect_colors: bool - Detect font and background colors (default: True)
+            - detect_hyperlinks: bool - Detect hyperlinks in cells (default: True)
+            - preserve_formatting: bool - Preserve formatting in output (default: False)
+            Example: {"detect_bold": True, "detect_colors": False}
+        
+        output_format: Output format for extracted data. Valid values:
+            - "structured": Hierarchical structure with metadata (default)
+            - "flat": Flattened array of all table data
+            - "grouped_by_slide": Tables grouped by slide number
+        
+        include_metadata: Whether to include table metadata (position, size, formatting stats)
         
     Returns:
-        JSON string containing the extracted table data
+        JSON string containing the extracted table data with structure:
+        {
+            "summary": {
+                "total_tables_found": int,
+                "slides_processed": int,
+                "slides_with_tables": int
+            },
+            "extracted_tables": [
+                {
+                    "slide_number": int,
+                    "table_index": int,
+                    "rows": int,
+                    "columns": int,
+                    "headers": List[str],
+                    "data": [
+                        {
+                            "column_name": {
+                                "value": str,
+                                "formatting": {
+                                    "bold": bool,
+                                    "italic": bool,
+                                    "underline": bool,
+                                    "highlight": bool,
+                                    "font_color": str,
+                                    "background_color": str,
+                                    "hyperlink": str
+                                }
+                            }
+                        }
+                    ],
+                    "metadata": {...}  // if include_metadata is True
+                }
+            ]
+        }
+    
+    Example Usage:
+        # Basic table extraction from all slides
+        extract_table_data("presentation.pptx")
+        
+        # Extract tables from specific slides
+        extract_table_data("presentation.pptx", slide_numbers=[1, 2])
+        
+        # Extract tables with specific criteria
+        extract_table_data("presentation.pptx", slide_numbers=[1, 2], 
+                          table_criteria={"min_rows": 3, "header_contains": ["Name"]})
+        
+        # Extract specific columns with formatting from all slides
+        extract_table_data("presentation.pptx", 
+                          column_selection={"specific_columns": ["Name", "Age"]},
+                          formatting_detection={"detect_bold": True, "detect_colors": True})
     """
     logger.info(f"extract_table_data called with file_path: {file_path}, slide_numbers: {slide_numbers}")
     
@@ -423,7 +509,14 @@ async def extract_table_data(file_path: str, slide_numbers: List[int], table_cri
         
     except Exception as e:
         logger.error(f"Error in extract_table_data: {e}")
-        return f"Error: {str(e)}"
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        return json.dumps({
+            "error": str(e),
+            "error_type": "extract_table_data_error",
+            "file_path": file_path,
+            "slide_numbers": slide_numbers
+        }, indent=2)
 
 @mcp.tool
 async def clear_cache(file_path: Optional[str] = None) -> str:
@@ -556,7 +649,9 @@ async def analyze_text_formatting(file_path: str, slide_numbers: Optional[List[i
     
     Args:
         file_path: Path to the PowerPoint file (.pptx)
-        slide_numbers: Slide numbers to analyze (optional, analyzes all if not specified)
+        slide_numbers: Optional list of specific slide numbers to analyze (1-based indexing).
+                      If not provided or None, analyzes all slides in the presentation.
+                      Example: [1, 3, 5] to analyze only slides 1, 3, and 5
         include_bold_analysis: Whether to include detailed bold text analysis
         include_formatting_details: Whether to include detailed formatting information
         
@@ -591,7 +686,13 @@ async def analyze_text_formatting(file_path: str, slide_numbers: Optional[List[i
         
     except Exception as e:
         logger.error(f"Error in analyze_text_formatting: {e}")
-        return f"Error: {str(e)}"
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        return json.dumps({
+            "error": str(e),
+            "error_type": "analyze_text_formatting_error",
+            "file_path": file_path
+        }, indent=2)
 
 @mcp.tool
 async def extract_text_formatting(file_path: str, formatting_type: str, slide_numbers: Optional[List[int]] = None) -> str:
@@ -681,7 +782,14 @@ async def extract_text_formatting(file_path: str, formatting_type: str, slide_nu
         
     except Exception as e:
         logger.error(f"Error in extract_text_formatting: {e}")
-        return f"Error: {str(e)}"
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        return json.dumps({
+            "error": str(e),
+            "error_type": "extract_text_formatting_error",
+            "file_path": file_path,
+            "formatting_type": formatting_type
+        }, indent=2)
 
 @mcp.tool
 async def extract_bold_text(file_path: str, slide_numbers: Optional[List[int]] = None) -> str:

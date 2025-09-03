@@ -212,7 +212,7 @@ class PresentationAnalyzer:
                         try:
                             notes_xml = extractor.read_xml_content(notes_file)
                             if notes_xml:
-                                notes_content = self.content_extractor._extract_notes_content(notes_xml)
+                                notes_content = self.content_extractor.extract_slide_notes(notes_xml)
                         except Exception as e:
                             logger.debug(f"Notes not available for slide {i}: {e}")
                             # Notes are optional, so we continue without them
@@ -238,11 +238,23 @@ class PresentationAnalyzer:
         try:
             metadata = presentation_data.get('metadata', {})
             
+            # Calculate notes statistics
+            slides = presentation_data.get('slides', [])
+            notes_stats = {
+                'slides_with_notes': sum(1 for slide in slides if slide.get('notes', '').strip()),
+                'total_notes_length': sum(len(slide.get('notes', '')) for slide in slides),
+                'average_notes_length': 0
+            }
+            if notes_stats['slides_with_notes'] > 0:
+                notes_stats['average_notes_length'] = notes_stats['total_notes_length'] / notes_stats['slides_with_notes']
+            
             analysis = {
-                'slide_count': len(presentation_data.get('slides', [])),
+                'slide_count': len(slides),
                 'slide_size': metadata.get('slide_size'),
                 'has_sections': len(presentation_data.get('sections', [])) > 0,
                 'section_count': len(presentation_data.get('sections', [])),
+                'sections': presentation_data.get('sections', []),
+                'notes_statistics': notes_stats,
                 'estimated_duration': self._estimate_presentation_duration(presentation_data),
                 'complexity_score': self._calculate_complexity_score(presentation_data)
             }

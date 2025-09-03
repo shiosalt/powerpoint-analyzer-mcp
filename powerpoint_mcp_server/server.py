@@ -49,7 +49,7 @@ class PowerPointMCPServer:
             self.attribute_processor = AttributeProcessor()
             self.slide_query_engine = SlideQueryEngine(self.content_extractor)
             self.table_extractor = EnhancedTableExtractor(self.content_extractor)
-            self.formatting_analyzer = TextFormattingAnalyzer(self.content_extractor)
+            self.formatting_analyzer = TextFormattingAnalyzer(self.content_extractor, server=self)
             self.data_filter_engine = DataFilterEngine()
             self.presentation_analyzer = PresentationAnalyzer(self.content_extractor)
             self.file_validator = FileValidator()
@@ -65,6 +65,22 @@ class PowerPointMCPServer:
             import traceback
             logger.error(f"Initialization traceback: {traceback.format_exc()}")
             raise
+
+    def _resolve_slide_numbers(self, file_path: str, slide_numbers: Optional[List[int]]) -> List[int]:
+        """
+        Resolve slide numbers to a concrete list.
+        If slide_numbers is None or empty, returns all slide numbers.
+        """
+        if slide_numbers:
+            return slide_numbers
+        
+        # Get all slide numbers
+        with ZipExtractor(file_path) as extractor:
+            slide_files_dict = extractor.get_slide_xml_files()
+            total_slides = len(slide_files_dict)
+            all_slides = list(range(1, total_slides + 1))
+            logger.info(f"No slide numbers specified, analyzing all {total_slides} slides")
+            return all_slides
 
     def _setup_handlers(self):
         """Set up MCP request handlers."""
@@ -750,7 +766,7 @@ class PowerPointMCPServer:
         """Extract table data with flexible selection and formatting detection."""
         try:
             file_path = arguments.get("file_path")
-            slide_numbers = arguments.get("slide_numbers", [])
+            slide_numbers = arguments.get("slide_numbers")
             table_criteria_dict = arguments.get("table_criteria", {})
             column_selection_dict = arguments.get("column_selection", {})
             formatting_detection_dict = arguments.get("formatting_detection", {})
@@ -759,8 +775,9 @@ class PowerPointMCPServer:
 
             if not file_path:
                 raise ValueError("file_path is required")
-            if not slide_numbers:
-                raise ValueError("slide_numbers is required")
+            
+            # Resolve slide numbers (None/empty -> all slides)
+            slide_numbers = self._resolve_slide_numbers(file_path, slide_numbers)
 
             # Validate the file
             is_valid, error_message = self.file_validator.validate_file(file_path)
@@ -824,54 +841,33 @@ class PowerPointMCPServer:
             if not is_valid:
                 raise ValueError(f"File validation failed: {error_message}")
 
-            # Import the FormattingExtractor
+            # Import and use the new FormattingExtractor
             from .core.formatting_extractor import FormattingExtractor
             
             # Create formatting extractor
             formatting_extractor = FormattingExtractor(self.content_extractor)
 
-            # Extract content from the PowerPoint file
-            full_content = await self._process_powerpoint_file(file_path)
-            slides = full_content.get('slides', [])
+            # Extract formatting using the new position-aware extractor
+            extraction_result = formatting_extractor.extract_formatting(
+                file_path, formatting_type, slide_numbers
+            )
 
-            # Filter slides if specific slide numbers are provided
-            if slide_numbers:
-                slides = [slide for slide in slides if slide.get('slide_number') in slide_numbers]
-
-            # Process each slide
+            # Convert to the expected response format
             results_by_slide = []
-            total_formatted_segments = 0
-            slides_with_formatting = 0
-
-            for slide in slides:
-                slide_number = slide.get('slide_number', 0)
-                title = slide.get('title', '')
-                text_elements = slide.get('text_elements', [])
-
-                # Combine all text from the slide
-                complete_text = ' '.join([elem.get('content_plain', '') for elem in text_elements if elem.get('content_plain')])
-
-                # Extract formatted segments
-                formatted_segments = formatting_extractor.extract_formatting_segments(
-                    text_elements, formatting_type, slide_number
-                )
-
-                # Convert segments to response format
+            for slide_result in extraction_result.results_by_slide:
+                # Convert formatted segments to response format
                 response_segments = []
-                for segment in formatted_segments:
+                for segment in slide_result.formatted_segments:
                     response_segments.append({
                         "text": segment.text,
-                        "start_position": segment.start_position
+                        "start_position": segment.start_position,
+                        "end_position": segment.end_position
                     })
 
-                if response_segments:
-                    slides_with_formatting += 1
-                    total_formatted_segments += len(response_segments)
-
                 results_by_slide.append({
-                    "slide_number": slide_number,
-                    "title": title,
-                    "complete_text": complete_text,
+                    "slide_number": slide_result.slide_number,
+                    "title": slide_result.title,
+                    "complete_text": slide_result.complete_text,
                     "format": formatting_type,
                     "formatted_segments": response_segments
                 })
@@ -880,11 +876,7 @@ class PowerPointMCPServer:
             result = {
                 "file_path": file_path,
                 "formatting_type": formatting_type,
-                "summary": {
-                    "total_slides_analyzed": len(results_by_slide),
-                    "slides_with_formatting": slides_with_formatting,
-                    "total_formatted_segments": total_formatted_segments
-                },
+                "summary": extraction_result.summary,
                 "results_by_slide": results_by_slide
             }
 
@@ -916,6 +908,9 @@ class PowerPointMCPServer:
 
             if not file_path:
                 raise ValueError("file_path is required")
+            
+            # Resolve slide numbers (None/empty -> all slides)
+            slide_numbers = self._resolve_slide_numbers(file_path, slide_numbers)
 
             # Validate the file
             is_valid, error_message = self.file_validator.validate_file(file_path)

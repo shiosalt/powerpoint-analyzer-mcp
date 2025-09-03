@@ -87,9 +87,10 @@ class TextFormattingAnalyzer:
     Analyzer for text formatting in PowerPoint slides.
     """
     
-    def __init__(self, content_extractor: Optional[ContentExtractor] = None):
+    def __init__(self, content_extractor: Optional[ContentExtractor] = None, server=None):
         """Initialize the text formatting analyzer."""
         self.content_extractor = content_extractor or ContentExtractor()
+        self.server = server  # Reference to PowerPointMCPServer for accessing _extract_powerpoint_content
         self._analysis_cache = {}
     
     def analyze_formatting(
@@ -130,6 +131,12 @@ class TextFormattingAnalyzer:
             # Create formatting summary
             formatting_summary = self._create_formatting_summary(filtered_elements)
             
+            # Add sections and notes information to summary
+            if hasattr(self, '_sections_info'):
+                formatting_summary['sections'] = self._sections_info
+            if hasattr(self, '_notes_info'):
+                formatting_summary['notes'] = self._notes_info
+            
             # Apply grouping
             groupings = {}
             if grouping != GroupingType.NONE:
@@ -155,70 +162,294 @@ class TextFormattingAnalyzer:
         slide_numbers: Optional[List[int]],
         formatting_filter: FormattingFilter
     ) -> List[FormattedTextElement]:
-        """Extract formatted text elements from slides."""
+        """Extract formatted text elements from slides using PowerPointMCPServer."""
         try:
             formatted_elements = []
             
+            # Use ContentExtractor directly with ZipExtractor
+            from ..utils.zip_extractor import ZipExtractor
+            
             with ZipExtractor(file_path) as extractor:
+                # Get presentation XML for metadata and sections
+                presentation_xml = extractor.read_xml_content('ppt/presentation.xml')
+                sections = []
+                slide_to_section = {}
+                
+                if presentation_xml:
+                    sections = self.content_extractor.extract_presentation_sections(presentation_xml)
+                    # Create slide ID mapping for sections
+                    slide_id_mapping = {}
+                    slide_files_dict = extractor.get_slide_xml_files()
+                    for i, slide_file in enumerate(sorted(slide_files_dict.keys()), 1):
+                        # Extract slide ID from presentation.xml if needed
+                        slide_id_mapping[f"slide{i}"] = i
+                    slide_to_section = self.content_extractor.map_slides_to_sections(sections, slide_id_mapping)
+                
                 # Get slide XML files
                 slide_files_dict = extractor.get_slide_xml_files()
-                slide_files = sorted(slide_files_dict.keys())  # Convert to sorted list
+                slide_files = sorted(slide_files_dict.keys())
                 
-                # Determine which slides to analyze
-                if slide_numbers is None:
-                    slides_to_analyze = list(range(1, len(slide_files) + 1))
-                else:
-                    slides_to_analyze = [s for s in slide_numbers if s <= len(slide_files)]
-                
-                for slide_num in slides_to_analyze:
-                    slide_file = slide_files[slide_num - 1]
+                slides = []
+                for i, slide_file in enumerate(slide_files, 1):
                     slide_xml = extractor.read_xml_content(slide_file)
-                    
                     if slide_xml:
-                        elements = self._extract_formatted_elements_from_slide(
-                            slide_xml, slide_num, formatting_filter
+                        slide_info = self.content_extractor.extract_slide_content(slide_xml, i)
+                        
+                        # Extract notes if available
+                        notes_file = f'ppt/notesSlides/notesSlide{i}.xml'
+                        notes_content = ""
+                        try:
+                            notes_xml = extractor.read_xml_content(notes_file)
+                            if notes_xml:
+                                notes_content = self.content_extractor.extract_slide_notes(notes_xml)
+                        except Exception as e:
+                            logger.debug(f"No notes found for slide {i}: {e}")
+                        
+                        # Resolve hyperlinks for this slide
+                        self.content_extractor._resolve_hyperlink_relationships(
+                            extractor, i, slide_info.text_elements
                         )
-                        formatted_elements.extend(elements)
+                        
+                        # Convert SlideInfo to dict format
+                        slide_data = {
+                            'slide_number': i,
+                            'title': slide_info.title,
+                            'subtitle': slide_info.subtitle,
+                            'text_elements': slide_info.text_elements,
+                            'tables': slide_info.tables,
+                            'notes': notes_content,
+                            'section_name': slide_to_section.get(i, None)
+                        }
+                        slides.append(slide_data)
+                
+                content_result = {'slides': slides}
+                
+                # Store sections and notes information for summary
+                self._sections_info = {
+                    'total_sections': len(sections),
+                    'sections': [{'name': s['name'], 'slide_count': s['slide_count']} for s in sections]
+                }
+                
+                notes_stats = {
+                    'slides_with_notes': sum(1 for slide in slides if slide.get('notes', '').strip()),
+                    'total_notes_length': sum(len(slide.get('notes', '')) for slide in slides),
+                    'average_notes_length': 0
+                }
+                if notes_stats['slides_with_notes'] > 0:
+                    notes_stats['average_notes_length'] = notes_stats['total_notes_length'] / notes_stats['slides_with_notes']
+                
+                self._notes_info = notes_stats
+            
+            if not content_result or 'slides' not in content_result:
+                logger.warning("No slide content found")
+                return []
+            
+            slides = content_result['slides']
+            logger.debug(f"Found {len(slides)} slides to analyze")
+            
+            # Determine which slides to analyze
+            if slide_numbers is None or len(slide_numbers) == 0:
+                slides_to_analyze = list(range(1, len(slides) + 1))
+            else:
+                slides_to_analyze = [s for s in slide_numbers if s <= len(slides)]
+            
+            logger.debug(f"Analyzing slides: {slides_to_analyze}")
+            
+            for slide_num in slides_to_analyze:
+                slide_data = slides[slide_num - 1]  # Convert to 0-based index
+                logger.debug(f"Processing slide {slide_num}: {len(slide_data.get('text_elements', []))} text elements")
+                
+                elements = self._extract_formatted_elements_from_slide_data(
+                    slide_data, slide_num, formatting_filter
+                )
+                logger.debug(f"Extracted {len(elements)} formatted elements from slide {slide_num}")
+                formatted_elements.extend(elements)
             
             return formatted_elements
             
         except Exception as e:
             logger.warning(f"Failed to extract formatted elements: {e}")
+            import traceback
+            logger.warning(f"Traceback: {traceback.format_exc()}")
             return []
     
-    def _extract_formatted_elements_from_slide(
+    def _extract_formatted_elements_from_slide_data(
         self,
-        slide_xml: str,
+        slide_data: Dict[str, Any],
         slide_number: int,
         formatting_filter: FormattingFilter
     ) -> List[FormattedTextElement]:
-        """Extract formatted text elements from a single slide."""
+        """Extract formatted text elements from slide data provided by ContentExtractor."""
         try:
-            root = self.content_extractor.xml_parser.parse_xml_string(slide_xml)
-            if root is None:
-                return []
-            
+            logger.debug(f"_extract_formatted_elements_from_slide_data called for slide {slide_number}")
             elements = []
             
             # Extract from different content types based on filter
             content_types = formatting_filter.content_types or [ContentType.ALL]
+            logger.debug(f"Content types to analyze: {content_types}")
             
+            # Process text elements from ContentExtractor
+            text_elements = slide_data.get('text_elements', [])
+            logger.debug(f"Found {len(text_elements)} text elements in slide {slide_number}")
+            
+            for element_index, text_element in enumerate(text_elements):
+                logger.debug(f"Processing text element {element_index} from slide {slide_number}: {text_element.get('content_plain', '')[:50]}...")
+                # Create FormattedTextElement from ContentExtractor data
+                formatted_element = self._create_formatted_element_from_text_element(
+                    text_element, slide_number, element_index, content_types
+                )
+                if formatted_element:
+                    elements.append(formatted_element)
+                    logger.debug(f"Added formatted element from slide {slide_number}, element {element_index}")
+                else:
+                    logger.debug(f"No formatted element created for slide {slide_number}, element {element_index}")
+            
+            # Also process title and subtitle if they have formatting
             if ContentType.ALL in content_types or ContentType.TITLES in content_types:
-                elements.extend(self._extract_title_formatting(root, slide_number))
-            
-            if ContentType.ALL in content_types or ContentType.TEXT_BOXES in content_types:
-                elements.extend(self._extract_text_box_formatting(root, slide_number))
-            
-            if ContentType.ALL in content_types or ContentType.TABLES in content_types:
-                elements.extend(self._extract_table_text_formatting(root, slide_number))
-            
-            if ContentType.ALL in content_types or ContentType.BULLETS in content_types:
-                elements.extend(self._extract_bullet_formatting(root, slide_number))
+                title = slide_data.get('title')
+                if title:
+                    title_element = self._create_formatted_element_from_title(
+                        title, slide_number, 'title'
+                    )
+                    if title_element:
+                        elements.append(title_element)
+                
+                subtitle = slide_data.get('subtitle')
+                if subtitle:
+                    subtitle_element = self._create_formatted_element_from_title(
+                        subtitle, slide_number, 'subtitle'
+                    )
+                    if subtitle_element:
+                        elements.append(subtitle_element)
             
             return elements
             
         except Exception as e:
             logger.warning(f"Failed to extract formatted elements from slide {slide_number}: {e}")
+            return []
+    
+    def _create_formatted_element_from_text_element(
+        self,
+        text_element: Dict[str, Any],
+        slide_number: int,
+        element_index: int,
+        content_types: List[ContentType]
+    ) -> Optional[FormattedTextElement]:
+        """Create FormattedTextElement from ContentExtractor text element data."""
+        try:
+            logger.debug(f"Creating formatted element from text element: {text_element}")
+            content_plain = text_element.get('content_plain', '')
+            if not content_plain.strip():
+                logger.debug(f"No content_plain found or empty: '{content_plain}'")
+                return None
+            
+            # Create formatting counts from ContentExtractor data
+            formatting_counts = {
+                'bold': text_element.get('bolded', 0),
+                'italic': text_element.get('italicized', 0),
+                'underline': text_element.get('underlined', 0),
+                'strikethrough': text_element.get('strikethrough', 0),
+                'highlight': 0,  # ContentExtractor doesn't track this separately yet
+                'colored_text': len(text_element.get('font_colors', [])),
+                'hyperlinks': len(text_element.get('hyperlinks', []))
+            }
+            
+            # Get position and size
+            position = text_element.get('position', [0, 0])
+            size = text_element.get('size', [0, 0])
+            
+            # Create formatting dictionary
+            formatting = {
+                'counts': formatting_counts,
+                'font_sizes': text_element.get('font_sizes', []),
+                'font_colors': text_element.get('font_colors', []),
+                'hyperlinks': self._extract_hyperlink_urls(text_element.get('hyperlinks', []))
+            }
+            
+            # Create FormattedTextElement
+            formatted_element = FormattedTextElement(
+                slide_number=slide_number,
+                element_index=element_index,
+                content_type=ContentType.TEXT_BOXES,
+                text_content=content_plain,
+                formatting=formatting,
+                position=tuple(position),
+                size=tuple(size)
+            )
+            
+            logger.debug(f"Successfully created formatted element for slide {slide_number}, element {element_index}")
+            return formatted_element
+            
+        except Exception as e:
+            logger.warning(f"Failed to create formatted element from text element: {e}")
+            import traceback
+            logger.warning(f"Traceback: {traceback.format_exc()}")
+            return None
+    
+    def _create_formatted_element_from_title(
+        self,
+        title_text: str,
+        slide_number: int,
+        title_type: str
+    ) -> Optional[FormattedTextElement]:
+        """Create FormattedTextElement from title/subtitle text."""
+        try:
+            if not title_text.strip():
+                return None
+            
+            # For titles, we assume no special formatting for now
+            # This could be enhanced to analyze title formatting if needed
+            formatting_counts = {
+                'bold': 0,
+                'italic': 0,
+                'underline': 0,
+                'strikethrough': 0,
+                'highlight': 0,
+                'colored_text': 0,
+                'hyperlinks': 0
+            }
+            
+            content_type = ContentType.TITLES if title_type == 'title' else ContentType.TEXT_BOXES
+            
+            # Create formatting dictionary
+            formatting = {
+                'counts': formatting_counts,
+                'font_sizes': [],
+                'font_colors': [],
+                'hyperlinks': []
+            }
+            
+            formatted_element = FormattedTextElement(
+                slide_number=slide_number,
+                element_index=0,
+                content_type=content_type,
+                text_content=title_text,
+                formatting=formatting,
+                position=(0, 0),
+                size=(0, 0)
+            )
+            
+            return formatted_element
+            
+        except Exception as e:
+            logger.warning(f"Failed to create formatted element from title: {e}")
+            return None
+    
+    def _extract_hyperlink_urls(self, hyperlinks) -> List[str]:
+        """Extract URLs from hyperlinks data."""
+        try:
+            urls = []
+            if isinstance(hyperlinks, list):
+                for hl in hyperlinks:
+                    if isinstance(hl, dict):
+                        # Dictionary format: {'url': 'http://...', 'display_text': '...'}
+                        urls.append(hl.get('url', ''))
+                    elif isinstance(hl, str):
+                        # String format: direct URL
+                        urls.append(hl)
+            return urls
+        except Exception as e:
+            logger.warning(f"Failed to extract hyperlink URLs: {e}")
             return []
     
     def _extract_title_formatting(self, root, slide_number: int) -> List[FormattedTextElement]:
@@ -512,99 +743,13 @@ class TextFormattingAnalyzer:
                 'has_formatting': False
             }
             
-            # First check for paragraph-level default formatting using manual navigation
-            all_elements = list(element.iter())
-            paragraphs = [elem for elem in all_elements if elem.tag.endswith('}p')]
-            
-            logger.debug(f"Found {len(paragraphs)} paragraphs in element")
-            
-            for paragraph in paragraphs:
-                # Find paragraph properties manually
-                para_props = [child for child in paragraph if child.tag.endswith('}pPr')]
-                
-                for p_pr in para_props:
-                    # Find default run properties manually
-                    def_r_prs = [child for child in p_pr if child.tag.endswith('}defRPr')]
-                    
-                    for def_r_pr in def_r_prs:
-                        # Check for bold in default run properties
-                        for child in def_r_pr:
-                            local_name = child.tag.split('}')[-1] if '}' in child.tag else child.tag
-                            if local_name == 'b':
-                                bold_val = child.get('val', '1')
-                                if bold_val != '0':
-                                    logger.debug(f"Found explicit bold in paragraph defRPr")
-                                    formatting['bold_count'] += 1
-                                    formatting['has_formatting'] = True
-                        
-                        # Check Panose numbers for bold indication
-                        latin_elems = [child for child in def_r_pr if child.tag.endswith('}latin')]
-                        for latin_elem in latin_elems:
-                            panose = latin_elem.get('panose', '')
-                            logger.debug(f"Found panose in paragraph defRPr: {panose}")
-                            if len(panose) >= 4:
-                                # Panose weight is the 3rd and 4th characters (2nd byte)
-                                weight_hex = panose[2:4]
-                                try:
-                                    weight = int(weight_hex, 16)
-                                    logger.debug(f"Panose weight: {weight_hex} = {weight}")
-                                    # Values >= 7 typically indicate bold (0x07-0x0F)
-                                    if weight >= 7:
-                                        logger.debug(f"Detected bold from panose weight: {weight}")
-                                        formatting['bold_count'] += 1
-                                        formatting['has_formatting'] = True
-                                except ValueError:
-                                    logger.debug(f"Invalid panose weight hex: {weight_hex}")
-                                    pass
-            
-            # Check list style formatting using manual navigation
-            all_elements = list(element.iter())
-            lst_styles = [elem for elem in all_elements if elem.tag.endswith('}lstStyle')]
-            
-            logger.debug(f"List style found: {len(lst_styles) > 0}")
-            
-            for lst_style in lst_styles:
-                # Find level properties manually
-                level_props = [child for child in lst_style if 'lvl' in child.tag and child.tag.endswith('pPr')]
-                logger.debug(f"Found {len(level_props)} level properties")
-                
-                for level_prop in level_props:
-                    # Find default run properties in level
-                    def_r_prs = [child for child in level_prop if child.tag.endswith('}defRPr')]
-                    
-                    for def_r_pr in def_r_prs:
-                        # Check for bold in level default run properties
-                        for child in def_r_pr:
-                            local_name = child.tag.split('}')[-1] if '}' in child.tag else child.tag
-                            if local_name == 'b':
-                                bold_val = child.get('val', '1')
-                                if bold_val != '0':
-                                    logger.debug(f"Found explicit bold in level defRPr")
-                                    formatting['bold_count'] += 1
-                                    formatting['has_formatting'] = True
-                        
-                        # Check Panose numbers in level properties
-                        latin_elems = [child for child in def_r_pr if child.tag.endswith('}latin')]
-                        for latin_elem in latin_elems:
-                            panose = latin_elem.get('panose', '')
-                            logger.debug(f"Found panose in level defRPr: {panose}")
-                            if len(panose) >= 4:
-                                weight_hex = panose[2:4]
-                                try:
-                                    weight = int(weight_hex, 16)
-                                    logger.debug(f"Level panose weight: {weight_hex} = {weight}")
-                                    if weight >= 7:
-                                        logger.debug(f"Detected bold from level panose weight: {weight}")
-                                        formatting['bold_count'] += 1
-                                        formatting['has_formatting'] = True
-                                except ValueError:
-                                    logger.debug(f"Invalid level panose weight hex: {weight_hex}")
-                                    pass
-            
+            # Use the XML parser's namespace-aware methods for better reliability
             # Find all text runs for run-level formatting
             runs = self.content_extractor.xml_parser.find_elements_with_namespace(
                 element, './/a:r'
             )
+            
+            logger.debug(f"Found {len(runs)} text runs in element")
             
             for run in runs:
                 r_pr = self.content_extractor.xml_parser.find_element_with_namespace(
@@ -612,110 +757,120 @@ class TextFormattingAnalyzer:
                 )
                 
                 if r_pr is not None:
-                    # Check for bold - need to be more specific about the element name
-                    # Look for direct child elements with local name 'b'
-                    bold_elem = None
-                    for child in r_pr:
-                        local_name = child.tag.split('}')[-1] if '}' in child.tag else child.tag
-                        if local_name == 'b':
-                            bold_elem = child
-                            break
-                    
+                    # Check for bold formatting
+                    bold_elem = self.content_extractor.xml_parser.find_element_with_namespace(
+                        r_pr, './/a:b'
+                    )
                     if bold_elem is not None:
                         bold_val = bold_elem.get('val', '1')
                         if bold_val != '0':
                             formatting['bold_count'] += 1
                             formatting['has_formatting'] = True
+                            logger.debug(f"Found bold formatting in run")
                     
-                    # Check for italic - look for direct child with local name 'i'
-                    italic_elem = None
-                    for child in r_pr:
-                        local_name = child.tag.split('}')[-1] if '}' in child.tag else child.tag
-                        if local_name == 'i':
-                            italic_elem = child
-                            break
-                    
+                    # Check for italic formatting
+                    italic_elem = self.content_extractor.xml_parser.find_element_with_namespace(
+                        r_pr, './/a:i'
+                    )
                     if italic_elem is not None:
                         italic_val = italic_elem.get('val', '1')
                         if italic_val != '0':
                             formatting['italic_count'] += 1
                             formatting['has_formatting'] = True
+                            logger.debug(f"Found italic formatting in run")
                     
-                    # Check for underline - look for direct child with local name 'u'
-                    underline_elem = None
-                    for child in r_pr:
-                        local_name = child.tag.split('}')[-1] if '}' in child.tag else child.tag
-                        if local_name == 'u':
-                            underline_elem = child
-                            break
-                    
+                    # Check for underline formatting
+                    underline_elem = self.content_extractor.xml_parser.find_element_with_namespace(
+                        r_pr, './/a:u'
+                    )
                     if underline_elem is not None:
                         underline_val = underline_elem.get('val', 'sng')
                         if underline_val != 'none':
                             formatting['underline_count'] += 1
                             formatting['has_formatting'] = True
+                            logger.debug(f"Found underline formatting in run")
                     
-                    # Check for strikethrough - look for direct child with local name 'strike'
-                    strike_elem = None
-                    for child in r_pr:
-                        local_name = child.tag.split('}')[-1] if '}' in child.tag else child.tag
-                        if local_name == 'strike':
-                            strike_elem = child
-                            break
-                    
+                    # Check for strikethrough formatting
+                    strike_elem = self.content_extractor.xml_parser.find_element_with_namespace(
+                        r_pr, './/a:strike'
+                    )
                     if strike_elem is not None:
                         strike_val = strike_elem.get('val', 'sngStrike')
                         if strike_val != 'noStrike':
                             formatting['strikethrough_count'] += 1
                             formatting['has_formatting'] = True
+                            logger.debug(f"Found strikethrough formatting in run")
                     
-                    # Check for highlight - look for direct child with local name 'highlight'
-                    highlight_elem = None
-                    for child in r_pr:
-                        local_name = child.tag.split('}')[-1] if '}' in child.tag else child.tag
-                        if local_name == 'highlight':
-                            highlight_elem = child
-                            break
-                    
+                    # Check for highlight formatting
+                    highlight_elem = self.content_extractor.xml_parser.find_element_with_namespace(
+                        r_pr, './/a:highlight'
+                    )
                     if highlight_elem is not None:
                         formatting['highlight_count'] += 1
                         formatting['has_formatting'] = True
+                        logger.debug(f"Found highlight formatting in run")
                     
-                    # Extract font size - look for direct child with local name 'sz'
-                    font_size_elem = None
-                    for child in r_pr:
-                        local_name = child.tag.split('}')[-1] if '}' in child.tag else child.tag
-                        if local_name == 'sz':
-                            font_size_elem = child
-                            break
+                    # Extract font size
+                    font_size_elem = self.content_extractor.xml_parser.find_element_with_namespace(
+                        r_pr, './/a:sz'
+                    )
+                    if font_size_elem is not None:
+                        sz = font_size_elem.get('val')
+                        if sz:
+                            try:
+                                font_size = float(sz) / 100.0
+                                formatting['font_sizes'].append(font_size)
+                                logger.debug(f"Extracted font size: {font_size} from sz value: {sz}")
+                            except (ValueError, TypeError) as e:
+                                logger.warning(f"Failed to parse font size '{sz}': {e}")
                     
-                    # Extract font size - check both attribute and child element
-                    sz = r_pr.get('sz')  # Check as attribute first
-                    if not sz and font_size_elem is not None:
-                        sz = font_size_elem.get('val')  # Check as child element
-                    
-                    if sz:
-                        try:
-                            font_size = float(sz) / 100.0
-                            formatting['font_sizes'].append(font_size)
-                            logger.debug(f"Extracted font size: {font_size} from sz value: {sz}")
-                        except (ValueError, TypeError) as e:
-                            logger.warning(f"Failed to parse font size '{sz}': {e}")
-                    # Don't add default font size here - let the calling code handle defaults
-                    
-                    # Extract font color - look for solidFill child
-                    solid_fill = None
-                    for child in r_pr:
-                        local_name = child.tag.split('}')[-1] if '}' in child.tag else child.tag
-                        if local_name == 'solidFill':
-                            solid_fill = child
-                            break
-                    
+                    # Extract font color from solidFill
+                    solid_fill = self.content_extractor.xml_parser.find_element_with_namespace(
+                        r_pr, './/a:solidFill'
+                    )
                     if solid_fill is not None:
                         color = self._extract_color_from_fill(solid_fill)
                         if color:
                             formatting['font_colors'].append(color)
                             formatting['has_formatting'] = True
+                            logger.debug(f"Found font color: {color}")
+            
+            # Check for paragraph-level default formatting
+            paragraphs = self.content_extractor.xml_parser.find_elements_with_namespace(
+                element, './/a:p'
+            )
+            
+            for paragraph in paragraphs:
+                p_pr = self.content_extractor.xml_parser.find_element_with_namespace(
+                    paragraph, './/a:pPr'
+                )
+                if p_pr is not None:
+                    # Check default run properties in paragraph
+                    def_r_pr = self.content_extractor.xml_parser.find_element_with_namespace(
+                        p_pr, './/a:defRPr'
+                    )
+                    if def_r_pr is not None:
+                        # Check for bold in default run properties
+                        bold_elem = self.content_extractor.xml_parser.find_element_with_namespace(
+                            def_r_pr, './/a:b'
+                        )
+                        if bold_elem is not None:
+                            bold_val = bold_elem.get('val', '1')
+                            if bold_val != '0':
+                                formatting['bold_count'] += 1
+                                formatting['has_formatting'] = True
+                                logger.debug(f"Found bold in paragraph default properties")
+                        
+                        # Check for italic in default run properties
+                        italic_elem = self.content_extractor.xml_parser.find_element_with_namespace(
+                            def_r_pr, './/a:i'
+                        )
+                        if italic_elem is not None:
+                            italic_val = italic_elem.get('val', '1')
+                            if italic_val != '0':
+                                formatting['italic_count'] += 1
+                                formatting['has_formatting'] = True
+                                logger.debug(f"Found italic in paragraph default properties")
             
             # Check for hyperlinks
             hyperlinks = self.content_extractor.xml_parser.find_elements_with_namespace(
@@ -741,11 +896,24 @@ class TextFormattingAnalyzer:
             formatting['font_sizes'] = list(set(formatting['font_sizes']))
             formatting['font_colors'] = list(set(formatting['font_colors']))
             
+            logger.debug(f"Formatting analysis complete: {formatting}")
             return formatting
             
         except Exception as e:
             logger.warning(f"Failed to analyze text formatting in element: {e}")
-            return {'has_formatting': False}
+            import traceback
+            logger.warning(f"Traceback: {traceback.format_exc()}")
+            return {
+                'bold_count': 0,
+                'italic_count': 0,
+                'underline_count': 0,
+                'highlight_count': 0,
+                'strikethrough_count': 0,
+                'font_sizes': [],
+                'font_colors': [],
+                'hyperlinks': [],
+                'has_formatting': False
+            }
     
     def _extract_color_from_fill(self, solid_fill) -> Optional[str]:
         """Extract color value from a solid fill element."""
@@ -1138,3 +1306,44 @@ def create_formatting_filter_from_dict(filter_dict: Dict[str, Any]) -> Formattin
         max_font_size=filter_dict.get('max_font_size'),
         colors=filter_dict.get('colors')
     )
+
+def create_formatting_filter_from_dict(filter_dict: Dict[str, Any]) -> FormattingFilter:
+    """Create FormattingFilter from a dictionary representation."""
+    try:
+        formatting_filter = FormattingFilter()
+        
+        # Parse formatting types
+        if 'formatting_types' in filter_dict:
+            formatting_types = []
+            for fmt_type in filter_dict['formatting_types']:
+                if isinstance(fmt_type, str):
+                    try:
+                        formatting_types.append(FormattingType(fmt_type))
+                    except ValueError:
+                        pass  # Skip invalid formatting types
+            formatting_filter.formatting_types = formatting_types
+        
+        # Parse content types
+        if 'content_types' in filter_dict:
+            content_types = []
+            for content_type in filter_dict['content_types']:
+                if isinstance(content_type, str):
+                    try:
+                        content_types.append(ContentType(content_type))
+                    except ValueError:
+                        pass  # Skip invalid content types
+            formatting_filter.content_types = content_types
+        
+        # Parse other filter options
+        formatting_filter.text_contains = filter_dict.get('text_contains')
+        formatting_filter.text_patterns = filter_dict.get('text_patterns')
+        formatting_filter.slide_numbers = filter_dict.get('slide_numbers')
+        formatting_filter.min_font_size = filter_dict.get('min_font_size')
+        formatting_filter.max_font_size = filter_dict.get('max_font_size')
+        formatting_filter.colors = filter_dict.get('colors')
+        
+        return formatting_filter
+        
+    except Exception as e:
+        logger.warning(f"Failed to create formatting filter from dict: {e}")
+        return FormattingFilter()
