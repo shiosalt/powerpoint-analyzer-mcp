@@ -708,6 +708,27 @@ class PowerPointMCPServer:
             if not is_valid:
                 raise ValueError(f"File validation failed: {error_message}")
 
+            # Validate search criteria dictionary first
+            validation_result = self.slide_query_engine.validate_search_criteria_dict(search_criteria)
+            if not validation_result['is_valid']:
+                logger.warning(f"Invalid search criteria dictionary: {validation_result['errors']}")
+                # Return empty results for invalid criteria
+                response = {
+                    "results": [],
+                    "total_found": 0,
+                    "search_criteria": search_criteria,
+                    "return_fields": return_fields,
+                    "validation_errors": validation_result['errors']
+                }
+                return CallToolResult(
+                    content=[
+                        TextContent(
+                            type="text",
+                            text=json.dumps(response, indent=2, ensure_ascii=False)
+                        )
+                    ]
+                )
+
             # Create filters from dictionary
             filters = create_filters_from_dict(search_criteria)
 

@@ -158,6 +158,7 @@
 - [x] 16. Create comprehensive integration tests for search and display improvements
 
 
+
   - Add tests for sections and notes filtering in query_slides
   - Add tests for sections and notes filtering in extract_table_data
   - Add tests for grammar error handling returning zero results
