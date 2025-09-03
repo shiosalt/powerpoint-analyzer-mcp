@@ -66,7 +66,7 @@ pip install -r requirements.txt
 ```json
 {
   "mcpServers": {
-    "powerpoint-mcp-server": {
+    "powerpoint-analyzer-mcp": {
       "command": "python",
       "args": ["/path/to/your/powerpoint-analyzer/main.py"],
       "env": {
@@ -83,7 +83,7 @@ macOS/Linux:
 ```json
 {
   "mcpServers": {
-    "powerpoint-mcp-server": {
+    "powerpoint-analyzer-mcp": {
       "command": "python",
       "args": ["/Users/username/powerpoint-analyzer/main.py"],
       "env": {
@@ -98,7 +98,7 @@ Windows:
 ```json
 {
   "mcpServers": {
-    "powerpoint-mcp-server": {
+    "powerpoint-analyzer-mcp": {
       "command": "python",
       "args": ["C:\\Users\\username\\powerpoint-analyzer\\main.py"],
       "env": {

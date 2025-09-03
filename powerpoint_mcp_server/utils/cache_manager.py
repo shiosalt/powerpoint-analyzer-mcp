@@ -1,5 +1,5 @@
 """
-Cache manager for PowerPoint MCP server responses.
+Cache manager for PowerPoint Analyzer MCP responses.
 Provides file hash-based caching with memory storage and expiration.
 """
 

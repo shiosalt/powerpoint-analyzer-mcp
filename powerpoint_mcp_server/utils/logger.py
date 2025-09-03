@@ -1,4 +1,4 @@
-"""Logging utilities for the PowerPoint MCP server."""
+"""Logging utilities for the PowerPoint Analyzer MCP."""
 
 import logging
 import sys

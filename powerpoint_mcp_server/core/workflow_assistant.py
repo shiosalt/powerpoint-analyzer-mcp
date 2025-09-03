@@ -1,5 +1,5 @@
 """
-Intelligent workflow assistance for PowerPoint MCP Server.
+Intelligent workflow assistance for PowerPoint Analyzer MCP.
 """
 
 import logging

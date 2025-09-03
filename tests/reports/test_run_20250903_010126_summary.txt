@@ -1,0 +1,43 @@
+PowerPoint MCP Server Test Execution Report
+==================================================
+
+Execution ID: test_run_20250903_010126
+Start Time: 2025-09-03 01:01:26.035752
+End Time: 2025-09-03 01:01:28.122222
+Duration: 2.09 seconds
+
+Test Results Summary:
+  Total Tests: 48
+  Passed: 45
+  Failed: 3
+  Success Rate: 93.8%
+
+Performance Metrics:
+  Average Response Time: 0.04s
+  Fastest Test: 0.00s
+  Slowest Test: 0.06s
+  Tests Under 1s: 48
+  Tests Over 5s: 0
+
+Resource Usage:
+  Memory Usage: 2.2 MB
+  CPU Usage: 0.0%
+
+Coverage Analysis:
+  Tools Tested: 11
+    analyze_text_formatting: 2 tests
+    extract_bold_text: 4 tests
+    get_powerpoint_attributes: 5 tests
+    clear_cache: 2 tests
+    reload_file_content: 2 tests
+    extract_table_data: 2 tests
+    extract_powerpoint_content: 4 tests
+    get_presentation_overview: 4 tests
+    extract_text_formatting: 16 tests
+    get_slide_info: 5 tests
+    query_slides: 2 tests
+
+Error Summary:
+  Total Errors: 3
+  Most Common Errors:
+    Expected error but got success: 3 occurrences

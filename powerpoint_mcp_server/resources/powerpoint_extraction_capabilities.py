@@ -7,12 +7,12 @@ from typing import Dict, Any
 
 POWERPOINT_EXTRACTION_CAPABILITIES = {
     "name": "powerpoint_extraction_capabilities",
-    "description": "Complete reference for PowerPoint MCP Server extraction capabilities and attributes",
+    "description": "Complete reference for PowerPoint Analyzer MCP extraction capabilities and attributes",
     "uri": "powerpoint://capabilities/extraction",
     "mimeType": "application/json",
     "content": {
         "overview": {
-            "description": "The PowerPoint MCP Server provides comprehensive extraction capabilities for PowerPoint presentations (.pptx files only)",
+            "description": "The PowerPoint Analyzer MCP provides comprehensive extraction capabilities for PowerPoint presentations (.pptx files only)",
             "supported_formats": [".pptx"],
             "unsupported_formats": [".ppt", ".odp"],
             "key_features": [

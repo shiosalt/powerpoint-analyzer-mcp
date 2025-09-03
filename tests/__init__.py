@@ -1,1 +1,1 @@
-"""Test package for PowerPoint MCP Server."""
+"""Test package for PowerPoint Analyzer MCP."""

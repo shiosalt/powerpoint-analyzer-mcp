@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Health check script for PowerPoint MCP Server."""
+"""Health check script for PowerPoint Analyzer MCP."""
 
 import sys
 import json
@@ -90,7 +90,7 @@ def check_test_file_processing():
 
 def main():
     """Run health checks."""
-    print("PowerPoint MCP Server Health Check")
+    print("PowerPoint Analyzer MCP Health Check")
     print("=" * 40)
     
     checks = [

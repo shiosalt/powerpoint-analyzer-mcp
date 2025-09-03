@@ -1,4 +1,4 @@
-"""Utility modules for PowerPoint MCP server."""
+"""Utility modules for PowerPoint Analyzer MCP."""
 
 from .file_validator import FileValidator, FileValidationError
 from .zip_extractor import ZipExtractor, ZipExtractionError

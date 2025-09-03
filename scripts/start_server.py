@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Startup script for PowerPoint MCP Server with enhanced configuration options."""
+"""Startup script for PowerPoint Analyzer MCP with enhanced configuration options."""
 
 import argparse
 import asyncio
@@ -17,7 +17,7 @@ from powerpoint_mcp_server.config import get_config_manager
 def parse_arguments():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
-        description="PowerPoint MCP Server - Extract structured content from PowerPoint files"
+        description="PowerPoint Analyzer MCP - Extract structured content from PowerPoint files"
     )
     
     parser.add_argument(
@@ -53,7 +53,7 @@ def parse_arguments():
     parser.add_argument(
         "--version",
         action="version",
-        version="PowerPoint MCP Server 0.1.0"
+        version="PowerPoint Analyzer MCP 0.1.0"
     )
     
     return parser.parse_args()

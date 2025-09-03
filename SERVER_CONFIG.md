@@ -1,6 +1,6 @@
-# PowerPoint MCP Server Configuration
+# PowerPoint Analyzer MCP Configuration
 
-This document describes the configuration options and startup procedures for the PowerPoint MCP Server using FastMCP 2.0.
+This document describes the configuration options and startup procedures for the PowerPoint Analyzer MCP using FastMCP 2.0.
 
 ## Quick Start
 
@@ -81,7 +81,7 @@ The health check verifies:
 
 Example output:
 ```
-PowerPoint MCP Server Health Check
+PowerPoint Analyzer MCP Health Check
 ========================================
 
 Dependencies:
@@ -128,7 +128,7 @@ Default log format: `%(asctime)s - %(name)s - %(levelname)s - %(message)s`
 
 Example log output:
 ```
-2024-01-15 10:30:45,123 - __main__ - INFO - Starting PowerPoint MCP Server using FastMCP 2.0: powerpoint-mcp-server v0.1.0
+2024-01-15 10:30:45,123 - __main__ - INFO - Starting PowerPoint Analyzer MCP using FastMCP 2.0: powerpoint-analyzer-mcp v0.1.0
 2024-01-15 10:30:45,124 - __main__ - INFO - Log file: powerpoint_mcp_server.log
 2024-01-15 10:30:45,125 - __main__ - INFO - FastMCP 2.0 server configured with tools
 2024-01-15 10:30:45,126 - __main__ - INFO - Starting FastMCP 2.0 server...

@@ -1,4 +1,4 @@
-"""Configuration management for PowerPoint MCP Server."""
+"""Configuration management for PowerPoint Analyzer MCP."""
 
 import os
 import logging
@@ -15,7 +15,7 @@ class ServerConfig:
     log_format: str = field(default='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     
     # Server configuration
-    server_name: str = field(default='powerpoint-mcp-server')
+    server_name: str = field(default='powerpoint-analyzer-mcp')
     server_version: str = field(default='0.1.0')
     
     # File processing limits

@@ -96,7 +96,7 @@ class TestIntegrationWorkflow:
         with ZipExtractor(file_path) as zip_extractor:
             # Get all slides
             slide_files = zip_extractor.get_slide_xml_files()
-            assert len(slide_files) == 2  # Complex file has 2 slides
+            assert len(slide_files) == 4  # Complex file has 4 slides
             
             slides_data = []
             
@@ -320,7 +320,7 @@ class TestMCPServerIntegration:
         content_data = json.loads(result.content[0].text)
         
         assert 'slides' in content_data
-        assert len(content_data['slides']) == 2
+        assert len(content_data['slides']) == 4
         
         # Verify filtered attributes
         for slide in content_data['slides']:

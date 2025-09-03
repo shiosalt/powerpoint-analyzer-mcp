@@ -1,4 +1,4 @@
-"""Main MCP server implementation for PowerPoint content extraction."""
+"""Main PowerPoint Analyzer MCP server implementation for PowerPoint content extraction."""
 
 import asyncio
 import json
@@ -28,6 +28,7 @@ from .core.enhanced_table_extractor import EnhancedTableExtractor, create_table_
 from .core.text_formatting_analyzer import TextFormattingAnalyzer, create_formatting_filter_from_dict, GroupingType
 from .core.data_filter_engine import DataFilterEngine, create_filter_config_from_dict
 from .core.presentation_analyzer import PresentationAnalyzer, AnalysisDepth
+from .tools.tool_help import get_tool_help
 from .utils.file_validator import FileValidator
 from .utils.zip_extractor import ZipExtractor
 from .config import get_config, get_config_manager
@@ -35,10 +36,10 @@ from .config import get_config, get_config_manager
 logger = logging.getLogger(__name__)
 
 class PowerPointMCPServer:
-    """Main MCP server class for PowerPoint content extraction."""
+    """Main PowerPoint Analyzer MCP server class for PowerPoint content extraction."""
 
     def __init__(self):
-        """Initialize the PowerPoint MCP server."""
+        """Initialize the PowerPoint Analyzer MCP server."""
         try:
             self.config = get_config()
             self.config_manager = get_config_manager()
@@ -55,12 +56,12 @@ class PowerPointMCPServer:
             self._running = False
             self._setup_handlers()
 
-            logger.info(f"PowerPoint MCP Server initialized (version {self.config.server_version})")
+            logger.info(f"PowerPoint Analyzer MCP initialized (version {self.config.server_version})")
             if self.config.debug_mode:
                 self.config_manager.log_configuration()
 
         except Exception as e:
-            logger.error(f"Failed to initialize PowerPoint MCP Server: {e}")
+            logger.error(f"Failed to initialize PowerPoint Analyzer MCP: {e}")
             import traceback
             logger.error(f"Initialization traceback: {traceback.format_exc()}")
             raise
@@ -215,6 +216,30 @@ class PowerPointMCPServer:
                     }
                 ),
                 Tool(
+                    name="extract_text_formatting",
+                    description="Extract text with specific formatting attributes from PowerPoint slides",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "file_path": {
+                                "type": "string",
+                                "description": "Path to the PowerPoint file (.pptx)"
+                            },
+                            "formatting_type": {
+                                "type": "string",
+                                "enum": ["bold", "italic", "underlined", "highlighted", "strikethrough", "hyperlinks", "font_sizes", "font_colors"],
+                                "description": "Type of formatting to extract"
+                            },
+                            "slide_numbers": {
+                                "type": "array",
+                                "items": {"type": "integer"},
+                                "description": "Slide numbers to analyze (optional, analyzes all if not specified)"
+                            }
+                        },
+                        "required": ["file_path", "formatting_type"]
+                    }
+                ),
+                Tool(
                     name="analyze_text_formatting",
                     description="Analyze text formatting patterns across slides",
                     inputSchema={
@@ -322,6 +347,20 @@ class PowerPointMCPServer:
                         },
                         "required": ["file_path"]
                     }
+                ),
+                Tool(
+                    name="tool_help",
+                    description="Get detailed help and documentation for MCP tools",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "tool_name": {
+                                "type": "string",
+                                "description": "Name of the tool to get help for"
+                            }
+                        },
+                        "required": ["tool_name"]
+                    }
                 )
             ]
             return ListToolsResult(tools=tools)
@@ -344,6 +383,8 @@ class PowerPointMCPServer:
                     return await self._query_slides(sanitized_arguments)
                 elif name == "extract_table_data":
                     return await self._extract_table_data(sanitized_arguments)
+                elif name == "extract_text_formatting":
+                    return await self._extract_text_formatting(sanitized_arguments)
                 elif name == "analyze_text_formatting":
                     return await self._analyze_text_formatting(sanitized_arguments)
                 elif name == "filter_and_aggregate":
@@ -352,6 +393,8 @@ class PowerPointMCPServer:
                     return await self._get_presentation_overview(sanitized_arguments)
                 elif name == "analyze_presentation":
                     return await self._analyze_presentation(sanitized_arguments)
+                elif name == "tool_help":
+                    return await self._tool_help(sanitized_arguments)
                 else:
                     raise McpError(
                         ErrorData(
@@ -759,6 +802,110 @@ class PowerPointMCPServer:
                 )
             )
 
+    async def _extract_text_formatting(self, arguments: Dict[str, Any]) -> CallToolResult:
+        """Extract text with specific formatting attributes from PowerPoint slides."""
+        try:
+            file_path = arguments.get("file_path")
+            formatting_type = arguments.get("formatting_type")
+            slide_numbers = arguments.get("slide_numbers")
+
+            if not file_path:
+                raise ValueError("file_path is required")
+            if not formatting_type:
+                raise ValueError("formatting_type is required")
+
+            # Validate formatting_type
+            valid_types = ["bold", "italic", "underlined", "highlighted", "strikethrough", "hyperlinks", "font_sizes", "font_colors"]
+            if formatting_type not in valid_types:
+                raise ValueError(f"Invalid formatting_type: {formatting_type}. Valid options: {valid_types}")
+
+            # Validate the file
+            is_valid, error_message = self.file_validator.validate_file(file_path)
+            if not is_valid:
+                raise ValueError(f"File validation failed: {error_message}")
+
+            # Import the FormattingExtractor
+            from .core.formatting_extractor import FormattingExtractor
+            
+            # Create formatting extractor
+            formatting_extractor = FormattingExtractor(self.content_extractor)
+
+            # Extract content from the PowerPoint file
+            full_content = await self._process_powerpoint_file(file_path)
+            slides = full_content.get('slides', [])
+
+            # Filter slides if specific slide numbers are provided
+            if slide_numbers:
+                slides = [slide for slide in slides if slide.get('slide_number') in slide_numbers]
+
+            # Process each slide
+            results_by_slide = []
+            total_formatted_segments = 0
+            slides_with_formatting = 0
+
+            for slide in slides:
+                slide_number = slide.get('slide_number', 0)
+                title = slide.get('title', '')
+                text_elements = slide.get('text_elements', [])
+
+                # Combine all text from the slide
+                complete_text = ' '.join([elem.get('content_plain', '') for elem in text_elements if elem.get('content_plain')])
+
+                # Extract formatted segments
+                formatted_segments = formatting_extractor.extract_formatting_segments(
+                    text_elements, formatting_type, slide_number
+                )
+
+                # Convert segments to response format
+                response_segments = []
+                for segment in formatted_segments:
+                    response_segments.append({
+                        "text": segment.text,
+                        "start_position": segment.start_position
+                    })
+
+                if response_segments:
+                    slides_with_formatting += 1
+                    total_formatted_segments += len(response_segments)
+
+                results_by_slide.append({
+                    "slide_number": slide_number,
+                    "title": title,
+                    "complete_text": complete_text,
+                    "format": formatting_type,
+                    "formatted_segments": response_segments
+                })
+
+            # Create response
+            result = {
+                "file_path": file_path,
+                "formatting_type": formatting_type,
+                "summary": {
+                    "total_slides_analyzed": len(results_by_slide),
+                    "slides_with_formatting": slides_with_formatting,
+                    "total_formatted_segments": total_formatted_segments
+                },
+                "results_by_slide": results_by_slide
+            }
+
+            return CallToolResult(
+                content=[
+                    TextContent(
+                        type="text",
+                        text=json.dumps(result, indent=2, ensure_ascii=False)
+                    )
+                ]
+            )
+
+        except Exception as e:
+            logger.error(f"Error extracting text formatting: {e}")
+            raise McpError(
+                ErrorData(
+                    code=INTERNAL_ERROR,
+                    message=f"Failed to extract text formatting: {str(e)}"
+                )
+            )
+
     async def _analyze_text_formatting(self, arguments: Dict[str, Any]) -> CallToolResult:
         """Analyze text formatting patterns across slides."""
         try:
@@ -1094,6 +1241,38 @@ class PowerPointMCPServer:
                 )
             )
 
+    async def _tool_help(self, arguments: Dict[str, Any]) -> CallToolResult:
+        """Get detailed help and documentation for MCP tools."""
+        try:
+            tool_name = arguments.get("tool_name")
+            
+            if not tool_name:
+                raise ValueError("tool_name is required")
+            
+            # Get help text for the specified tool
+            help_text = get_tool_help(tool_name)
+            
+            if not help_text or "No help available" in help_text:
+                raise ValueError(f"No help available for tool: {tool_name}")
+            
+            return CallToolResult(
+                content=[
+                    TextContent(
+                        type="text",
+                        text=help_text
+                    )
+                ]
+            )
+            
+        except Exception as e:
+            logger.error(f"Error getting tool help: {e}")
+            raise McpError(
+                ErrorData(
+                    code=INTERNAL_ERROR,
+                    message=f"Failed to get tool help: {str(e)}"
+                )
+            )
+
     def _parse_boolean(self, value) -> bool:
         """Parse boolean value from various formats (handles JSON true/false)."""
         if isinstance(value, bool):
@@ -1130,7 +1309,7 @@ class PowerPointMCPServer:
 
     async def shutdown(self):
         """Shutdown the server gracefully."""
-        logger.info("Shutting down PowerPoint MCP Server...")
+        logger.info("Shutting down PowerPoint Analyzer MCP...")
         self._running = False
 
         # Perform any cleanup operations
@@ -1144,12 +1323,12 @@ class PowerPointMCPServer:
         except Exception as e:
             logger.warning(f"Error during shutdown cleanup: {e}")
 
-        logger.info("PowerPoint MCP Server shutdown complete")
+        logger.info("PowerPoint Analyzer MCP shutdown complete")
 
     async def run(self):
         """Run the MCP server using direct JSON-RPC implementation."""
         try:
-            logger.info("Starting PowerPoint MCP Server...")
+            logger.info("Starting PowerPoint Analyzer MCP...")
             self._running = True
             
             # Use direct JSON-RPC implementation instead of MCP library
@@ -1373,6 +1552,20 @@ class PowerPointMCPServer:
                     },
                     "required": ["file_path"]
                 }
+            },
+            {
+                "name": "tool_help",
+                "description": "Get detailed help and documentation for MCP tools",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "tool_name": {
+                            "type": "string",
+                            "description": "Name of the tool to get help for"
+                        }
+                    },
+                    "required": ["tool_name"]
+                }
             }
         ]
     
@@ -1389,6 +1582,8 @@ class PowerPointMCPServer:
             return await self._get_powerpoint_attributes(sanitized_arguments)
         elif name == "analyze_presentation":
             return await self._analyze_presentation(sanitized_arguments)
+        elif name == "tool_help":
+            return await self._tool_help(sanitized_arguments)
         else:
             raise ValueError(f"Unknown tool: {name}")
 

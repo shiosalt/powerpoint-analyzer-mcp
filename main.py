@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Main entry point for the PowerPoint MCP Server using FastMCP 2.0."""
+"""Main entry point for the PowerPoint Analyzer MCP using FastMCP 2.0."""
 
 import asyncio
 import json
@@ -49,14 +49,14 @@ async def lifespan(app):
     global powerpoint_server
     
     # Startup
-    logger.info("Initializing PowerPoint MCP Server...")
+    logger.info("Initializing PowerPoint Analyzer MCP...")
     powerpoint_server = PowerPointMCPServer()
-    logger.info("PowerPoint MCP Server initialized successfully")
+    logger.info("PowerPoint Analyzer MCP initialized successfully")
     
     yield
     
     # Shutdown
-    logger.info("Shutting down PowerPoint MCP Server...")
+    logger.info("Shutting down PowerPoint Analyzer MCP...")
     powerpoint_server = None
 
 def get_powerpoint_server() -> PowerPointMCPServer:
@@ -73,11 +73,114 @@ mcp = FastMCP(config.server_name, lifespan=lifespan)
 async def extract_powerpoint_content(file_path: str) -> str:
     """Extract complete structured content from a PowerPoint file.
     
+    This is the primary content extraction tool that analyzes a PowerPoint presentation
+    and returns comprehensive information about all slides, including text content,
+    formatting, layout information, tables, metadata, and structural elements.
+    
     Args:
-        file_path: Path to the PowerPoint file (.pptx)
+        file_path: Path to the PowerPoint file (.pptx). Must be a valid PowerPoint file.
+                  Supports both relative and absolute paths.
+                  Example: "presentation.pptx" or "/path/to/slides.pptx"
         
     Returns:
-        JSON string containing the complete structured content of the PowerPoint file
+        JSON string containing the complete structured content with the following format:
+        {
+            "file_path": str,                    # Path to the analyzed file
+            "slides": [                          # Array of slide objects
+                {
+                    "slide_number": int,         # Slide number (1-based)
+                    "title": str,                # Slide title (null if no title)
+                    "subtitle": str,             # Slide subtitle (null if no subtitle)
+                    "layout_name": str,          # Name of the slide layout
+                    "layout_type": str,          # Type of layout (e.g., "Title Slide", "Content")
+                    "placeholders": [            # Array of placeholder objects
+                        {
+                            "type": str,         # Placeholder type (e.g., "title", "content")
+                            "text": str,         # Text content in placeholder
+                            "position": [int, int], # [x, y] coordinates
+                            "size": [int, int]   # [width, height] dimensions
+                        }
+                    ],
+                    "text_elements": [           # Array of text element objects
+                        {
+                            "content_plain": str,    # Plain text content
+                            "content_formatted": str, # Formatted text content
+                            "bolded": int,           # Number of bold text runs
+                            "italicized": int,       # Number of italic text runs
+                            "underlined": int,       # Number of underlined text runs
+                            "font_sizes": [int],     # Array of font sizes used
+                            "font_colors": [str],    # Array of font colors (hex format)
+                            "hyperlinks": [          # Array of hyperlink objects
+                                {
+                                    "url": str,      # Hyperlink URL
+                                    "display_text": str # Display text for the link
+                                }
+                            ],
+                            "position": [int, int],  # [x, y] coordinates
+                            "size": [int, int]       # [width, height] dimensions
+                        }
+                    ],
+                    "tables": [                  # Array of table objects
+                        {
+                            "rows": int,         # Number of rows
+                            "columns": int,      # Number of columns
+                            "cells": [           # Array of cell data
+                                {
+                                    "row": int,  # Row index (0-based)
+                                    "col": int,  # Column index (0-based)
+                                    "text": str  # Cell text content
+                                }
+                            ]
+                        }
+                    ],
+                    "notes": str,                # Speaker notes content
+                    "object_counts": {           # Count of different object types
+                        "text_boxes": int,       # Number of text boxes
+                        "tables": int,           # Number of tables
+                        "images": int,           # Number of images
+                        "shapes": int            # Number of shapes
+                    }
+                }
+            ],
+            "metadata": {                        # Presentation metadata
+                "slide_count": int,              # Total number of slides
+                "title": str,                    # Presentation title
+                "author": str,                   # Presentation author
+                "created_date": str,             # Creation date
+                "modified_date": str             # Last modification date
+            },
+            "slide_size": {                      # Slide dimensions
+                "width_emu": int,                # Width in EMUs (English Metric Units)
+                "height_emu": int,               # Height in EMUs
+                "width_inches": float,           # Width in inches
+                "height_inches": float           # Height in inches
+            },
+            "sections": [                        # Presentation sections (if any)
+                {
+                    "name": str,                 # Section name
+                    "slide_range": [int, int]    # [start_slide, end_slide]
+                }
+            ],
+            "notes": [                           # Speaker notes for all slides
+                {
+                    "slide_number": int,         # Slide number
+                    "notes_content": str         # Notes text content
+                }
+            ]
+        }
+        
+        If an error occurs, returns:
+        {
+            "error": str                         # Error message describing what went wrong
+        }
+    
+    Example Usage:
+        extract_powerpoint_content("quarterly_report.pptx")
+        # Returns complete analysis of all slides, text, formatting, and metadata
+    
+    Note: This tool provides the most comprehensive analysis available and serves as the
+    foundation for other specialized extraction tools. For focused analysis of specific
+    attributes, consider using get_powerpoint_attributes() instead.
     """
     logger.info(f"extract_powerpoint_content called with file_path: {file_path}")
     
@@ -107,14 +210,73 @@ async def extract_powerpoint_content(file_path: str) -> str:
 
 @mcp.tool
 async def get_powerpoint_attributes(file_path: str, attributes: List[str]) -> str:
-    """Get specific attributes from PowerPoint slides.
+    """Get specific attributes from PowerPoint slides with selective extraction.
+    
+    This tool provides efficient extraction of only the requested attributes from a PowerPoint
+    presentation, reducing processing time and response size when you don't need complete
+    content analysis. It's ideal for focused analysis or when working with large presentations.
     
     Args:
-        file_path: Path to the PowerPoint file (.pptx)
-        attributes: List of attributes to extract (title, subtitle, text, tables, images, layout, size, sections, notes, object_counts)
+        file_path: Path to the PowerPoint file (.pptx). Must be a valid PowerPoint file.
+                  Example: "presentation.pptx" or "/path/to/slides.pptx"
+        
+        attributes: List of specific attributes to extract. Valid attribute names are:
+            - "title": Slide titles only
+            - "subtitle": Slide subtitles only  
+            - "text": All text content (same as text_elements)
+            - "text_elements": Detailed text elements with formatting information
+            - "tables": Table structure and content
+            - "images": Image information and metadata
+            - "layout": Layout names and types
+            - "size": Slide dimensions and size information
+            - "sections": Presentation section information
+            - "notes": Speaker notes content
+            - "object_counts": Count of different object types per slide
+            - "placeholders": Placeholder information and content
         
     Returns:
-        JSON string containing the requested attributes from the PowerPoint file
+        JSON string containing only the requested attributes with the following structure:
+        {
+            "file_path": str,                    # Path to the analyzed file
+            "slides": [                          # Array of slide objects with only requested attributes
+                {
+                    "slide_number": int,         # Always included for reference
+                    # Only requested attributes will be present:
+                    "title": str,                # If "title" was requested
+                    "subtitle": str,             # If "subtitle" was requested
+                    "text_elements": [...],      # If "text" or "text_elements" was requested
+                    "tables": [...],             # If "tables" was requested
+                    "object_counts": {...},      # If "object_counts" was requested
+                    "layout_name": str,          # If "layout" was requested
+                    "layout_type": str,          # If "layout" was requested
+                    "placeholders": [...],       # If "placeholders" was requested
+                    "notes": str                 # If "notes" was requested
+                }
+            ],
+            # These may be included based on requested attributes:
+            "slide_size": {...},                 # If "size" was requested
+            "sections": [...],                   # If "sections" was requested
+            "metadata": {...}                    # Basic metadata always included
+        }
+        
+        If an error occurs, returns:
+        {
+            "error": str                         # Error message describing what went wrong
+        }
+    
+    Example Usage:
+        get_powerpoint_attributes("slides.pptx", ["title", "subtitle"])
+        # Returns only slide titles and subtitles
+        
+        get_powerpoint_attributes("slides.pptx", ["text_elements", "object_counts"])
+        # Returns text content and object counts for analysis
+        
+        get_powerpoint_attributes("slides.pptx", ["tables", "notes"])
+        # Returns table data and speaker notes only
+    
+    Performance Note: This tool is more efficient than extract_powerpoint_content() when you
+    only need specific attributes, especially for large presentations. It processes only the
+    requested content types and returns smaller response payloads.
     """
     logger.info(f"get_powerpoint_attributes called with file_path: {file_path}, attributes: {attributes}")
     
@@ -432,15 +594,164 @@ async def analyze_text_formatting(file_path: str, slide_numbers: Optional[List[i
         return f"Error: {str(e)}"
 
 @mcp.tool
-async def extract_bold_text(file_path: str, slide_numbers: Optional[List[int]] = None) -> str:
-    """Extract all bold text from slides with location information.
+async def extract_text_formatting(file_path: str, formatting_type: str, slide_numbers: Optional[List[int]] = None) -> str:
+    """Extract text with specific formatting attributes from PowerPoint slides.
+    
+    This tool provides a generalized interface for extracting various types of text formatting
+    from PowerPoint presentations. It analyzes slides and returns both complete text content
+    and specific formatted segments with position information.
     
     Args:
-        file_path: Path to the PowerPoint file (.pptx)
-        slide_numbers: Slide numbers to analyze (optional, analyzes all if not specified)
+        file_path: Path to the PowerPoint file (.pptx). Must be a valid PowerPoint file.
+                  Example: "presentation.pptx" or "/path/to/slides.pptx"
+        
+        formatting_type: Type of formatting to extract. Valid values are:
+            - "bold": Extract bold text segments and their positions
+            - "italic": Extract italic text segments and their positions
+            - "underlined": Extract underlined text segments and their positions
+            - "highlighted": Extract highlighted text segments and their positions
+            - "strikethrough": Extract strikethrough text segments and their positions
+            - "hyperlinks": Extract hyperlink text, URLs, and link types (external/internal/email)
+            - "font_sizes": Extract text segments with their font size information
+            - "font_colors": Extract text segments with their color information (hex format)
+        
+        slide_numbers: Optional list of specific slide numbers to analyze (1-based indexing).
+                      If not provided, analyzes all slides in the presentation.
+                      Example: [1, 3, 5] to analyze only slides 1, 3, and 5
         
     Returns:
-        JSON string containing all bold text with slide and position information
+        JSON string with the following structure:
+        {
+            "file_path": str,                    # Path to the analyzed file
+            "formatting_type": str,              # Type of formatting that was extracted
+            "summary": {
+                "total_slides_analyzed": int,    # Number of slides that were analyzed
+                "slides_with_formatting": int,   # Number of slides containing the requested formatting
+                "total_formatted_segments": int # Total number of formatted text segments found
+            },
+            "results_by_slide": [
+                {
+                    "slide_number": int,         # Slide number (1-based)
+                    "title": str,                # Slide title (empty string if no title)
+                    "complete_text": str,        # Complete text content from all text elements
+                    "format": str,               # Formatting type (same as input parameter)
+                    "formatted_segments": [      # Array of formatted text segments
+                        {
+                            "text": str,         # The formatted text content
+                            "start_position": int # Character position where formatted text starts
+                        }
+                    ]
+                }
+            ]
+        }
+        
+        If an error occurs, returns:
+        {
+            "error": str                         # Error message describing what went wrong
+        }
+    
+    Example Usage:
+        extract_text_formatting("slides.pptx", "bold") 
+        # Returns all bold text from all slides
+        
+        extract_text_formatting("slides.pptx", "hyperlinks", [1, 2])
+        # Returns hyperlinks from slides 1 and 2 only
+    """
+    logger.info(f"extract_text_formatting called with file_path: {file_path}, formatting_type: {formatting_type}, slide_numbers: {slide_numbers}")
+    
+    try:
+        server = get_powerpoint_server()
+        arguments = {
+            "file_path": file_path,
+            "formatting_type": formatting_type,
+            "slide_numbers": slide_numbers
+        }
+        
+        # Call the server method directly
+        result = await server._extract_text_formatting(arguments)
+        
+        # Extract text content from CallToolResult
+        content_text = ""
+        if result.content:
+            for content_item in result.content:
+                if hasattr(content_item, 'text'):
+                    content_text += content_item.text
+        
+        return content_text
+        
+    except Exception as e:
+        logger.error(f"Error in extract_text_formatting: {e}")
+        return f"Error: {str(e)}"
+
+@mcp.tool
+async def extract_bold_text(file_path: str, slide_numbers: Optional[List[int]] = None) -> str:
+    """Extract all bold text from slides with enhanced location and formatting information.
+    
+    This tool provides backward-compatible bold text extraction with enhanced response format
+    that includes both legacy fields and new position-aware segments. It analyzes PowerPoint
+    slides to identify bold text formatting and returns detailed information about bold content.
+    
+    Args:
+        file_path: Path to the PowerPoint file (.pptx). Must be a valid PowerPoint file.
+                  Example: "presentation.pptx" or "/path/to/slides.pptx"
+        
+        slide_numbers: Optional list of specific slide numbers to analyze (1-based indexing).
+                      If not provided, analyzes all slides in the presentation.
+                      Example: [1, 3, 5] to analyze only slides 1, 3, and 5
+        
+    Returns:
+        JSON string with the following structure:
+        {
+            "file_path": str,                    # Path to the analyzed file
+            "bold_text_summary": {
+                "total_slides_analyzed": int,    # Number of slides that were analyzed
+                "slides_with_bold_text": int,    # Number of slides containing bold text
+                "total_bold_elements": int       # Total number of bold text elements found
+            },
+            "bold_text_by_slide": [
+                {
+                    "slide_number": int,         # Slide number (1-based)
+                    "title": str,                # Slide title (empty string if no title)
+                    "complete_text": str,        # NEW: Complete text content from all text elements
+                    "bold_elements": [           # LEGACY: Original format for backward compatibility
+                        {
+                            "content": str,      # Full text content of element containing bold text
+                            "bold_count": int,   # Number of bold text runs in this element
+                            "font_sizes": list,  # Font sizes found in this element
+                            "font_colors": list, # Font colors found in this element
+                            "position": list,    # Element position [x, y] coordinates
+                            "size": list,        # Element size [width, height]
+                            "content_type": str, # Type of content ("text_elements")
+                            "element_index": int # Index of this element within the slide
+                        }
+                    ],
+                    "bold_segments": [           # NEW: Enhanced format with position information
+                        {
+                            "text": str,         # The bold text content
+                            "start_position": int, # Character position where bold text starts
+                            "end_position": int  # Character position where bold text ends
+                        }
+                    ],
+                    "bold_count": int            # Total count of bold elements on this slide
+                }
+            ]
+        }
+        
+        If an error occurs, returns:
+        {
+            "error": str                         # Error message describing what went wrong
+        }
+    
+    Example Usage:
+        extract_bold_text("slides.pptx")
+        # Returns all bold text from all slides with both legacy and enhanced formats
+        
+        extract_bold_text("slides.pptx", [1, 2])
+        # Returns bold text from slides 1 and 2 only
+    
+    Note: This tool maintains backward compatibility by including both the original 'bold_elements'
+    format and the new 'bold_segments' format with position information. New applications should
+    use the 'bold_segments' array for more precise text positioning.
     """
     logger.info(f"extract_bold_text called with file_path: {file_path}, slide_numbers: {slide_numbers}")
     
@@ -460,6 +771,11 @@ async def extract_bold_text(file_path: str, slide_numbers: Optional[List[int]] =
         
         # Parse the JSON content to extract bold text information
         content_data = json.loads(content_text)
+        
+        # Import the new formatting extractor
+        from powerpoint_mcp_server.core.formatting_extractor import FormattingExtractor
+        formatting_extractor = FormattingExtractor(server.content_extractor)
+        
         bold_text_analysis = {
             "file_path": file_path,
             "bold_text_summary": {
@@ -478,14 +794,25 @@ async def extract_bold_text(file_path: str, slide_numbers: Optional[List[int]] =
                 
             bold_text_analysis["bold_text_summary"]["total_slides_analyzed"] += 1
             
+            # Build complete text from all text elements
+            text_elements = slide_data.get('text_elements', [])
+            complete_text = ' '.join([elem.get('content_plain', '') for elem in text_elements])
+            
+            # Extract bold segments using the new extractor
+            bold_segments = formatting_extractor.extract_formatting_segments(
+                text_elements, "bold", slide_num
+            )
+            
             slide_bold_info = {
                 "slide_number": slide_num,
                 "title": slide_data.get('title', ''),
-                "bold_elements": [],
+                "complete_text": complete_text,  # New field: complete text content
+                "bold_elements": [],  # Legacy format for backward compatibility
+                "bold_segments": [],  # New field: array of bold text segments
                 "bold_count": 0
             }
             
-            # Analyze text elements for bold formatting
+            # Legacy format: Analyze text elements for bold formatting
             for idx, text_elem in enumerate(slide_data.get('text_elements', [])):
                 if text_elem.get('bolded', 0) > 0:
                     bold_element = {
@@ -501,12 +828,20 @@ async def extract_bold_text(file_path: str, slide_numbers: Optional[List[int]] =
                     slide_bold_info["bold_elements"].append(bold_element)
                     slide_bold_info["bold_count"] += text_elem.get('bolded', 0)
             
-            if slide_bold_info["bold_count"] > 0:
+            # New format: Add bold segments with position information
+            for segment in bold_segments:
+                slide_bold_info["bold_segments"].append({
+                    "text": segment.text,
+                    "start_position": segment.start_position,
+                    "end_position": segment.end_position
+                })
+            
+            if slide_bold_info["bold_count"] > 0 or bold_segments:
                 bold_text_analysis["bold_text_summary"]["slides_with_bold_text"] += 1
-                bold_text_analysis["bold_text_summary"]["total_bold_elements"] += slide_bold_info["bold_count"]
+                bold_text_analysis["bold_text_summary"]["total_bold_elements"] += max(slide_bold_info["bold_count"], len(bold_segments))
             
             # Include all slides if no filter, or only slides with bold text if filtering
-            if not slide_numbers or slide_bold_info["bold_elements"]:
+            if not slide_numbers or slide_bold_info["bold_elements"] or bold_segments:
                 bold_text_analysis["bold_text_by_slide"].append(slide_bold_info)
         
         return json.dumps(bold_text_analysis, indent=2, ensure_ascii=False)
@@ -515,9 +850,42 @@ async def extract_bold_text(file_path: str, slide_numbers: Optional[List[int]] =
         logger.error(f"Error in extract_bold_text: {e}")
         return f"Error: {str(e)}"
 
+@mcp.tool
+async def tool_help(tool_name: str) -> str:
+    """Get detailed help and documentation for MCP tools.
+    
+    Args:
+        tool_name: Name of the tool to get help for
+        
+    Returns:
+        Formatted help text with detailed documentation including:
+        - Tool description and purpose
+        - Parameter specifications with types and requirements  
+        - Detailed schema for complex parameters
+        - Usage examples with real scenarios
+        - Important notes and best practices
+    """
+    logger.info(f"tool_help called with tool_name: {tool_name}")
+    
+    try:
+        from powerpoint_mcp_server.tools.tool_help import get_tool_help
+        
+        # Get help text for the specified tool
+        help_text = get_tool_help(tool_name)
+        
+        if not help_text or "No help available" in help_text:
+            return f"No help available for tool: {tool_name}"
+        
+        logger.info(f"tool_help completed successfully for tool: {tool_name}")
+        return help_text
+        
+    except Exception as e:
+        logger.error(f"Error in tool_help: {e}")
+        return f"Error getting help for tool '{tool_name}': {str(e)}"
+
 def main():
     """Main entry point for the FastMCP PowerPoint server."""
-    logger.info(f"Starting PowerPoint MCP Server using FastMCP 2.0: {config.server_name} v{config.server_version}")
+    logger.info(f"Starting PowerPoint Analyzer MCP using FastMCP 2.0: {config.server_name} v{config.server_version}")
     logger.info(f"Log file: {log_file}")
     
     # Enable debug logging for FastMCP

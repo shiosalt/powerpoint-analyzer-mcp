@@ -1,4 +1,4 @@
-"""Setup script for PowerPoint MCP Server."""
+"""Setup script for PowerPoint Analyzer MCP."""
 
 from setuptools import setup, find_packages
 
@@ -6,16 +6,16 @@ with open("requirements.txt", "r", encoding="utf-8") as f:
     requirements = [line.strip() for line in f if line.strip() and not line.startswith("#")]
 
 setup(
-    name="powerpoint-mcp-server",
+    name="powerpoint-analyzer-mcp",
     version="0.1.0",
-    description="MCP server for extracting structured information from PowerPoint files",
-    author="PowerPoint MCP Server",
+    description="PowerPoint Analyzer MCP server for extracting structured information from PowerPoint files",
+    author="PowerPoint Analyzer MCP",
     packages=find_packages(),
     install_requires=requirements,
     python_requires=">=3.8",
     entry_points={
         "console_scripts": [
-            "powerpoint-mcp-server=powerpoint_mcp_server.server:main",
+            "powerpoint-analyzer-mcp=powerpoint_mcp_server.server:main",
         ],
     },
     classifiers=[

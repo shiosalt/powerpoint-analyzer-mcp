@@ -1,0 +1,111 @@
+{
+  "slide_1_bold": {
+    "slide_number": 1,
+    "title": "Bold Text Test Slide",
+    "bold_segments": [
+      {
+        "text": "bold text",
+        "start_position": 8
+      },
+      {
+        "text": "This entire paragraph is bold",
+        "start_position": 43
+      }
+    ]
+  },
+  "slide_2_italic": {
+    "slide_number": 2,
+    "title": "Italic Text Test Slide",
+    "italic_segments": [
+      {
+        "text": "italic formatting",
+        "start_position": 18
+      }
+    ]
+  },
+  "slide_3_underlined": {
+    "slide_number": 3,
+    "title": "Underlined Text Test Slide",
+    "underlined_segments": [
+      {
+        "text": "underlined sections",
+        "start_position": 14
+      }
+    ]
+  },
+  "slide_4_mixed": {
+    "slide_number": 4,
+    "title": "Mixed Formatting Test Slide",
+    "bold_segments": [
+      {
+        "text": "bold and italic",
+        "start_position": 14
+      }
+    ],
+    "italic_segments": [
+      {
+        "text": "bold and italic",
+        "start_position": 14
+      }
+    ]
+  },
+  "slide_5_hyperlinks": {
+    "slide_number": 5,
+    "title": "Hyperlink Test Slide",
+    "hyperlink_segments": [
+      {
+        "text": "our website",
+        "start_position": 6,
+        "url": "https://example.com",
+        "link_type": "external"
+      }
+    ]
+  },
+  "slide_6_font_sizes": {
+    "slide_number": 6,
+    "title": "Font Size Test Slide",
+    "font_size_segments": [
+      {
+        "text": "Small text ",
+        "font_size": 10,
+        "start_position": 0
+      },
+      {
+        "text": "Medium text ",
+        "font_size": 14,
+        "start_position": 11
+      },
+      {
+        "text": "Large text",
+        "font_size": 18,
+        "start_position": 24
+      }
+    ]
+  },
+  "slide_7_font_colors": {
+    "slide_number": 7,
+    "title": "Font Color Test Slide",
+    "font_color_segments": [
+      {
+        "text": "Red text ",
+        "font_color": "#FF0000",
+        "start_position": 0
+      },
+      {
+        "text": "Blue text ",
+        "font_color": "#0000FF",
+        "start_position": 9
+      },
+      {
+        "text": "Green text",
+        "font_color": "#00FF00",
+        "start_position": 19
+      }
+    ]
+  },
+  "slide_8_empty": {
+    "slide_number": 8,
+    "title": "",
+    "text_elements": []
+  }
+}

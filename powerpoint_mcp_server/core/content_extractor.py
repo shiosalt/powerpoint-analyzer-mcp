@@ -343,7 +343,7 @@ class ContentExtractor:
         try:
             # Look for title and subtitle in placeholders
             for placeholder in slide_info.placeholders:
-                if placeholder['type'] == 'title' and placeholder['content']:
+                if placeholder['type'] in ['title', 'ctrTitle'] and placeholder['content']:
                     slide_info.title = placeholder['content']
                 elif placeholder['type'] in ['subTitle', 'subtitle'] and placeholder['content']:
                     slide_info.subtitle = placeholder['content']

@@ -1,1 +1,1 @@
-"""Core processing modules for PowerPoint MCP server."""
+"""Core processing modules for PowerPoint Analyzer MCP."""

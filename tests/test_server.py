@@ -23,7 +23,7 @@ class TestPowerPointMCPServer:
         """Test that server initializes correctly."""
         assert self.server is not None
         assert hasattr(self.server, 'server')
-        assert self.server.server.name == "powerpoint-mcp-server"
+        assert self.server.server.name == "powerpoint-analyzer-mcp"
         assert hasattr(self.server, 'content_extractor')
         assert hasattr(self.server, 'attribute_processor')
         assert hasattr(self.server, 'file_validator')
@@ -200,7 +200,7 @@ class TestPowerPointMCPServer:
         with patch('powerpoint_mcp_server.server.ZipExtractor') as mock_extractor_class:
             mock_extractor = Mock()
             mock_extractor_class.return_value.__enter__.return_value = mock_extractor
-            mock_extractor.get_slide_xml_files.return_value = ['slide1.xml', 'slide2.xml']
+            mock_extractor.get_slide_xml_files.return_value = {'slide1.xml': '/path/slide1.xml', 'slide2.xml': '/path/slide2.xml'}
             
             with pytest.raises(ValueError) as exc_info:
                 await self.server._process_single_slide("test.pptx", 5)

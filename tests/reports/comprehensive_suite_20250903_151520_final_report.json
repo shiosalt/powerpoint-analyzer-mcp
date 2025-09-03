@@ -1,0 +1,250 @@
+{
+  "comprehensive_test_suite_report": {
+    "execution_id": "comprehensive_suite_20250903_151520",
+    "start_time": "2025-09-03T15:15:20.758648",
+    "end_time": "2025-09-03T15:15:25.854283",
+    "total_duration_seconds": 5.095635,
+    "test_environment": {
+      "python_version": "3.12.0 (tags/v3.12.0:0fb18b0, Oct  2 2023, 13:03:39) [MSC v.1935 64 bit (AMD64)]",
+      "test_files_directory": "J:\\MCP\\powerpoint-analyzer\\tests\\test_files",
+      "reports_directory": "J:\\MCP\\powerpoint-analyzer\\tests\\reports"
+    }
+  },
+  "integration_test_results": {
+    "summary": {
+      "total_tests": 25,
+      "passed_tests": 22,
+      "failed_tests": 3,
+      "success_rate": 88.0,
+      "average_response_time": 0.04093017578125
+    },
+    "tools_coverage": {
+      "extract_powerpoint_content": {
+        "total": 2,
+        "passed": 1,
+        "failed": 1
+      },
+      "get_powerpoint_attributes": {
+        "total": 2,
+        "passed": 2,
+        "failed": 0
+      },
+      "get_slide_info": {
+        "total": 3,
+        "passed": 2,
+        "failed": 1
+      },
+      "query_slides": {
+        "total": 1,
+        "passed": 1,
+        "failed": 0
+      },
+      "extract_table_data": {
+        "total": 1,
+        "passed": 1,
+        "failed": 0
+      },
+      "clear_cache": {
+        "total": 1,
+        "passed": 1,
+        "failed": 0
+      },
+      "reload_file_content": {
+        "total": 1,
+        "passed": 1,
+        "failed": 0
+      },
+      "get_presentation_overview": {
+        "total": 2,
+        "passed": 2,
+        "failed": 0
+      },
+      "analyze_text_formatting": {
+        "total": 1,
+        "passed": 1,
+        "failed": 0
+      },
+      "extract_text_formatting": {
+        "total": 8,
+        "passed": 7,
+        "failed": 1
+      },
+      "extract_bold_text": {
+        "total": 2,
+        "passed": 2,
+        "failed": 0
+      },
+      "tool_help": {
+        "total": 1,
+        "passed": 1,
+        "failed": 0
+      }
+    },
+    "failed_tests": [
+      {
+        "tool": "extract_text_formatting",
+        "description": "Error test: invalid formatting type",
+        "error": "Expected error but got success",
+        "parameters": {
+          "file_path": "J:\\MCP\\powerpoint-analyzer\\tests\\test_files\\test_formatting_comprehensive.pptx",
+          "formatting_type": "invalid_type"
+        }
+      },
+      {
+        "tool": "get_slide_info",
+        "description": "Error test: invalid slide number",
+        "error": "Expected error but got success",
+        "parameters": {
+          "file_path": "J:\\MCP\\powerpoint-analyzer\\tests\\test_files\\test_formatting_comprehensive.pptx",
+          "slide_number": 999
+        }
+      },
+      {
+        "tool": "extract_powerpoint_content",
+        "description": "Error test: nonexistent file",
+        "error": "Expected error but got success",
+        "parameters": {
+          "file_path": "nonexistent_file.pptx"
+        }
+      }
+    ],
+    "performance": {
+      "fastest_test": "TestResult(tool_name='tool_help', parameters={'file_path': 'J:\\\\MCP\\\\powerpoint-analyzer\\\\tests\\\\test_files\\\\test_formatting_comprehensive.pptx'}, success=True, response_time=0.002001047134399414, response_data={'raw_text': \"Input validation error: 'tool_name' is a required property\"}, error_message=None, test_description='tool_help with default parameters')",
+      "slowest_test": "TestResult(tool_name='extract_powerpoint_content', parameters={'file_path': 'J:\\\\MCP\\\\powerpoint-analyzer\\\\tests\\\\test_files\\\\test_formatting_comprehensive.pptx'}, success=True, response_time=0.11504435539245605, response_data={'file_path': 'J:\\\\MCP\\\\powerpoint-analyzer\\\\tests\\\\test_files\\\\test_formatting_comprehensive.pptx', 'slides': [{'slide_number': 1, 'title': 'Bold Text Test Slide', 'subtitle': None, 'layout_name': None, 'layout_type': 'titleAndContent', 'placeholders': [{'type': 'title', 'position': [0, 0], 'size': [0, 0], 'content': 'Bold Text Test Slide'}, {'type': 'content', 'position': [0, 0], 'size': [0, 0], 'content': 'This is bold text and this is normal text.\\nThis entire paragraph is bold'}], 'text_elements': [{'content_plain': 'Bold Text Test Slide', 'content_formatted': 'Bold Text Test Slide', 'font_sizes': [44.0], 'font_colors': [], 'hyperlinks': [], 'bolded': 0, 'italic': 0, 'underlined': 0, 'highlighted': 0, 'strikethrough': 0, 'position': [0, 0], 'size': [0, 0]}, {'content_plain': 'This is bold text and this is normal text.\\nThis entire paragraph is bold', 'content_formatted': 'This is <b>bold text</b> and this is normal text.\\n<b>This entire paragraph is bold</b>', 'font_sizes': [18.0], 'font_colors': [], 'hyperlinks': [], 'bolded': 2, 'italic': 0, 'underlined': 0, 'highlighted': 0, 'strikethrough': 0, 'position': [0, 0], 'size': [0, 0]}], 'tables': [], 'notes': '', 'object_counts': {'shapes': 2, 'text_boxes': 2, 'images': 0, 'tables': 0, 'charts': 0, 'media': 0, 'connectors': 0, 'groups': 0}}, {'slide_number': 2, 'title': 'Italic Text Test Slide', 'subtitle': None, 'layout_name': None, 'layout_type': 'titleAndContent', 'placeholders': [{'type': 'title', 'position': [0, 0], 'size': [0, 0], 'content': 'Italic Text Test Slide'}, {'type': 'content', 'position': [0, 0], 'size': [0, 0], 'content': 'This text contains italic formatting in the middle.'}], 'text_elements': [{'content_plain': 'Italic Text Test Slide', 'content_formatted': 'Italic Text Test Slide', 'font_sizes': [44.0], 'font_colors': [], 'hyperlinks': [], 'bolded': 0, 'italic': 0, 'underlined': 0, 'highlighted': 0, 'strikethrough': 0, 'position': [0, 0], 'size': [0, 0]}, {'content_plain': 'This text contains italic formatting in the middle.', 'content_formatted': 'This text contains <i>italic formatting</i> in the middle.', 'font_sizes': [18.0], 'font_colors': [], 'hyperlinks': [], 'bolded': 0, 'italic': 1, 'underlined': 0, 'highlighted': 0, 'strikethrough': 0, 'position': [0, 0], 'size': [0, 0]}], 'tables': [], 'notes': '', 'object_counts': {'shapes': 2, 'text_boxes': 2, 'images': 0, 'tables': 0, 'charts': 0, 'media': 0, 'connectors': 0, 'groups': 0}}, {'slide_number': 3, 'title': 'Underlined Text Test Slide', 'subtitle': None, 'layout_name': None, 'layout_type': 'titleAndContent', 'placeholders': [{'type': 'title', 'position': [0, 0], 'size': [0, 0], 'content': 'Underlined Text Test Slide'}, {'type': 'content', 'position': [0, 0], 'size': [0, 0], 'content': 'This text has underlined sections for testing.'}], 'text_elements': [{'content_plain': 'Underlined Text Test Slide', 'content_formatted': 'Underlined Text Test Slide', 'font_sizes': [44.0], 'font_colors': [], 'hyperlinks': [], 'bolded': 0, 'italic': 0, 'underlined': 0, 'highlighted': 0, 'strikethrough': 0, 'position': [0, 0], 'size': [0, 0]}, {'content_plain': 'This text has underlined sections for testing.', 'content_formatted': 'This text has <u>underlined sections</u> for testing.', 'font_sizes': [18.0], 'font_colors': [], 'hyperlinks': [], 'bolded': 0, 'italic': 0, 'underlined': 1, 'highlighted': 0, 'strikethrough': 0, 'position': [0, 0], 'size': [0, 0]}], 'tables': [], 'notes': '', 'object_counts': {'shapes': 2, 'text_boxes': 2, 'images': 0, 'tables': 0, 'charts': 0, 'media': 0, 'connectors': 0, 'groups': 0}}, {'slide_number': 4, 'title': 'Mixed Formatting Test Slide', 'subtitle': None, 'layout_name': None, 'layout_type': 'titleAndContent', 'placeholders': [{'type': 'title', 'position': [0, 0], 'size': [0, 0], 'content': 'Mixed Formatting Test Slide'}, {'type': 'content', 'position': [0, 0], 'size': [0, 0], 'content': 'This text has bold and italic formatting together.'}], 'text_elements': [{'content_plain': 'Mixed Formatting Test Slide', 'content_formatted': 'Mixed Formatting Test Slide', 'font_sizes': [44.0], 'font_colors': [], 'hyperlinks': [], 'bolded': 0, 'italic': 0, 'underlined': 0, 'highlighted': 0, 'strikethrough': 0, 'position': [0, 0], 'size': [0, 0]}, {'content_plain': 'This text has bold and italic formatting together.', 'content_formatted': 'This text has <i><b>bold and italic</b></i> formatting together.', 'font_sizes': [18.0], 'font_colors': [], 'hyperlinks': [], 'bolded': 1, 'italic': 1, 'underlined': 0, 'highlighted': 0, 'strikethrough': 0, 'position': [0, 0], 'size': [0, 0]}], 'tables': [], 'notes': '', 'object_counts': {'shapes': 2, 'text_boxes': 2, 'images': 0, 'tables': 0, 'charts': 0, 'media': 0, 'connectors': 0, 'groups': 0}}, {'slide_number': 5, 'title': 'Hyperlink Test Slide', 'subtitle': None, 'layout_name': None, 'layout_type': 'titleAndContent', 'placeholders': [{'type': 'title', 'position': [0, 0], 'size': [0, 0], 'content': 'Hyperlink Test Slide'}, {'type': 'content', 'position': [0, 0], 'size': [0, 0], 'content': 'Visit our website for more information.'}], 'text_elements': [{'content_plain': 'Hyperlink Test Slide', 'content_formatted': 'Hyperlink Test Slide', 'font_sizes': [44.0], 'font_colors': [], 'hyperlinks': [], 'bolded': 0, 'italic': 0, 'underlined': 0, 'highlighted': 0, 'strikethrough': 0, 'position': [0, 0], 'size': [0, 0]}, {'content_plain': 'Visit our website for more information.', 'content_formatted': 'Visit our website for more information.', 'font_sizes': [18.0], 'font_colors': [], 'hyperlinks': [], 'bolded': 0, 'italic': 0, 'underlined': 0, 'highlighted': 0, 'strikethrough': 0, 'position': [0, 0], 'size': [0, 0]}], 'tables': [], 'notes': '', 'object_counts': {'shapes': 2, 'text_boxes': 2, 'images': 0, 'tables': 0, 'charts': 0, 'media': 0, 'connectors': 0, 'groups': 0}}, {'slide_number': 6, 'title': 'Font Size Test Slide', 'subtitle': None, 'layout_name': None, 'layout_type': 'titleAndContent', 'placeholders': [{'type': 'title', 'position': [0, 0], 'size': [0, 0], 'content': 'Font Size Test Slide'}, {'type': 'content', 'position': [0, 0], 'size': [0, 0], 'content': 'Small text Medium text Large text'}], 'text_elements': [{'content_plain': 'Font Size Test Slide', 'content_formatted': 'Font Size Test Slide', 'font_sizes': [44.0], 'font_colors': [], 'hyperlinks': [], 'bolded': 0, 'italic': 0, 'underlined': 0, 'highlighted': 0, 'strikethrough': 0, 'position': [0, 0], 'size': [0, 0]}, {'content_plain': 'Small text Medium text Large text', 'content_formatted': 'Small text Medium text Large text', 'font_sizes': [10.0, 18.0, 14.0], 'font_colors': [], 'hyperlinks': [], 'bolded': 0, 'italic': 0, 'underlined': 0, 'highlighted': 0, 'strikethrough': 0, 'position': [0, 0], 'size': [0, 0]}], 'tables': [], 'notes': '', 'object_counts': {'shapes': 2, 'text_boxes': 2, 'images': 0, 'tables': 0, 'charts': 0, 'media': 0, 'connectors': 0, 'groups': 0}}, {'slide_number': 7, 'title': 'Font Color Test Slide', 'subtitle': None, 'layout_name': None, 'layout_type': 'titleAndContent', 'placeholders': [{'type': 'title', 'position': [0, 0], 'size': [0, 0], 'content': 'Font Color Test Slide'}, {'type': 'content', 'position': [0, 0], 'size': [0, 0], 'content': 'Red text Blue text Green text'}], 'text_elements': [{'content_plain': 'Font Color Test Slide', 'content_formatted': 'Font Color Test Slide', 'font_sizes': [44.0], 'font_colors': [], 'hyperlinks': [], 'bolded': 0, 'italic': 0, 'underlined': 0, 'highlighted': 0, 'strikethrough': 0, 'position': [0, 0], 'size': [0, 0]}, {'content_plain': 'Red text Blue text Green text', 'content_formatted': 'Red text Blue text Green text', 'font_sizes': [18.0], 'font_colors': ['#FF0000', '#0000FF', '#00FF00'], 'hyperlinks': [], 'bolded': 0, 'italic': 0, 'underlined': 0, 'highlighted': 0, 'strikethrough': 0, 'position': [0, 0], 'size': [0, 0]}], 'tables': [], 'notes': '', 'object_counts': {'shapes': 2, 'text_boxes': 2, 'images': 0, 'tables': 0, 'charts': 0, 'media': 0, 'connectors': 0, 'groups': 0}}, {'slide_number': 8, 'title': None, 'subtitle': None, 'layout_name': None, 'layout_type': 'blank', 'placeholders': [], 'text_elements': [], 'tables': [], 'notes': '', 'object_counts': {'shapes': 0, 'text_boxes': 0, 'images': 0, 'tables': 0, 'charts': 0, 'media': 0, 'connectors': 0, 'groups': 0}}], 'metadata': {'slide_count': 8, 'slide_size': {'width': 9144000, 'height': 6858000}, 'slide_master_count': 1, 'has_notes_master': False, 'has_handout_master': False, 'slide_ids': [{'r_id': 'rId7', 'id': '256'}, {'r_id': 'rId8', 'id': '257'}, {'r_id': 'rId9', 'id': '258'}, {'r_id': 'rId10', 'id': '259'}, {'r_id': 'rId11', 'id': '260'}, {'r_id': 'rId12', 'id': '261'}, {'r_id': 'rId13', 'id': '262'}, {'r_id': 'rId14', 'id': '263'}], 'slide_master_ids': ['rId1']}, 'slide_size': {'width_emu': 9144000, 'height_emu': 6858000, 'width_inches': 10.0, 'height_inches': 7.5, 'width_cm': 25.4, 'height_cm': 19.05, 'width_points': 720.0, 'height_points': 540.0, 'aspect_ratio': 1.33}, 'sections': [], 'notes': []}, error_message=None, test_description='extract_powerpoint_content with basic content extraction')"
+    }
+  },
+  "execution_test_results": {
+    "execution_id": "test_run_20250903_151522",
+    "duration_seconds": 1.977665,
+    "total_tests": 50,
+    "passed_tests": 47,
+    "failed_tests": 3,
+    "success_rate": 94.0,
+    "average_response_time": 0.04030046463012695,
+    "performance_metrics": {
+      "fastest_test": 0.0020105838775634766,
+      "slowest_test": 0.05666542053222656,
+      "median_response_time": 0.0475156307220459,
+      "tests_under_1s": 50,
+      "tests_over_5s": 0,
+      "memory_growth_mb": 2.42578125,
+      "peak_memory_mb": 77.7421875
+    },
+    "coverage_analysis": {
+      "tools_tested": [
+        "extract_table_data",
+        "get_powerpoint_attributes",
+        "query_slides",
+        "get_presentation_overview",
+        "tool_help",
+        "extract_powerpoint_content",
+        "get_slide_info",
+        "reload_file_content",
+        "clear_cache",
+        "analyze_text_formatting",
+        "extract_text_formatting",
+        "extract_bold_text"
+      ],
+      "total_tools_tested": 12,
+      "test_distribution": {
+        "extract_table_data": 2,
+        "get_powerpoint_attributes": 5,
+        "query_slides": 2,
+        "get_presentation_overview": 4,
+        "tool_help": 2,
+        "extract_powerpoint_content": 4,
+        "get_slide_info": 5,
+        "reload_file_content": 2,
+        "clear_cache": 2,
+        "analyze_text_formatting": 2,
+        "extract_text_formatting": 16,
+        "extract_bold_text": 4
+      }
+    }
+  },
+  "validation_results": {
+    "validation_timestamp": "2025-09-03T15:15:24.655223",
+    "validations_performed": [],
+    "validation_summary": {
+      "total_validations": 7,
+      "passed_validations": 6,
+      "failed_validations": 1,
+      "validation_success_rate": 85.71428571428571
+    },
+    "validation_details": [
+      {
+        "test_name": "bold_text_extraction_validation",
+        "passed": false,
+        "details": {},
+        "errors": [
+          "Segment count mismatch: expected 2, got 1"
+        ]
+      },
+      {
+        "test_name": "bold_formatting_extraction_validation",
+        "passed": true,
+        "details": {
+          "structure_valid": true,
+          "slides_analyzed": 8
+        },
+        "errors": []
+      },
+      {
+        "test_name": "italic_formatting_extraction_validation",
+        "passed": true,
+        "details": {
+          "structure_valid": true,
+          "slides_analyzed": 8
+        },
+        "errors": []
+      },
+      {
+        "test_name": "underlined_formatting_extraction_validation",
+        "passed": true,
+        "details": {
+          "structure_valid": true,
+          "slides_analyzed": 8
+        },
+        "errors": []
+      },
+      {
+        "test_name": "font_sizes_formatting_extraction_validation",
+        "passed": true,
+        "details": {
+          "structure_valid": true,
+          "slides_analyzed": 8
+        },
+        "errors": []
+      },
+      {
+        "test_name": "font_colors_formatting_extraction_validation",
+        "passed": true,
+        "details": {
+          "structure_valid": true,
+          "slides_analyzed": 8
+        },
+        "errors": []
+      },
+      {
+        "test_name": "content_extraction_validation",
+        "passed": true,
+        "details": {
+          "slide_count": 8,
+          "has_metadata": true
+        },
+        "errors": []
+      }
+    ]
+  },
+  "overall_summary": {
+    "total_test_categories": 3,
+    "integration_success_rate": 88.0,
+    "execution_success_rate": 94.0,
+    "validation_success_rate": 85.71428571428571,
+    "overall_success_rate": 89.23809523809524,
+    "recommendations": [
+      "Improve MCP integration test coverage and error handling",
+      "Review and update expected test results validation"
+    ]
+  }
+}
