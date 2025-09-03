@@ -153,6 +153,25 @@ python mcp_test_cli.py get_presentation_overview \
   --analysis_depth "detailed"
 ```
 
+### スライドクエリ（条件検索）
+
+```bash
+# 簡略JSON形式（Windows CMD）
+python mcp_test_cli.py query_slides \
+  --file_path "presentation.pptx" \
+  --search_criteria "{contains: bold, has_tables: true}"
+
+# 標準JSON形式（PowerShell）
+python mcp_test_cli.py query_slides \
+  --file_path "presentation.pptx" \
+  --search_criteria '{"contains": "bold", "has_tables": true}'
+
+# Windows CMD標準JSON形式
+python mcp_test_cli.py query_slides \
+  --file_path "presentation.pptx" \
+  --search_criteria "{""contains"": ""bold"", ""has_tables"": true}"
+```
+
 ## 🔧 パラメータの指定方法
 
 ### 文字列パラメータ
@@ -194,9 +213,20 @@ python mcp_test_cli.py get_presentation_overview \
 --attributes "[title, subtitle, text_elements]"
 ```
 
-### オブジェクトパラメータ（JSON形式）
+### オブジェクトパラメータ
+
+#### 1. JSON形式 - PowerShell
 ```bash
 --search_criteria '{"has_tables": true, "min_text_elements": 2}'
+```
+
+#### 2. JSON形式 - Windows CMD
+```bash
+# ダブルクォートをダブルクォートでエスケープ
+--search_criteria "{""has_tables"": true, ""min_text_elements"": 2}"
+
+# または簡略形式（クォートは自動追加）
+--search_criteria "{has_tables: true, min_text_elements: 2}"
 ```
 
 ## 🧪 テスト例の実行

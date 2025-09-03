@@ -375,6 +375,13 @@ class MCPTestCLI:
                     items = [item.strip() for item in content.split(",")]
                     quoted_items = [f'"{item}"' for item in items if item]
                     json_str = f'[{", ".join(quoted_items)}]'
+                
+                # If it looks like a JSON object but missing quotes around keys/values
+                elif cleaned_value.startswith("{") and not '"' in cleaned_value and not "'" in cleaned_value:
+                    # Try to fix missing quotes around object keys and values
+                    # Convert {key: value, key2: value2} to {"key": "value", "key2": "value2"}
+                    json_str = self._fix_json_object(cleaned_value)
+                
                 else:
                     # Handle Windows CMD double quote escaping
                     json_str = cleaned_value.replace('""', '"')
@@ -397,6 +404,75 @@ class MCPTestCLI:
         
         # Regular string
         return cleaned_value
+    
+    def _fix_json_object(self, obj_str: str) -> str:
+        """Fix malformed JSON object by adding quotes around keys and string values."""
+        try:
+            # Remove outer braces
+            content = obj_str[1:-1].strip()
+            if not content:
+                return "{}"
+            
+            # Split by comma to get key-value pairs
+            pairs = []
+            current_pair = ""
+            brace_count = 0
+            bracket_count = 0
+            
+            for char in content:
+                if char == '{':
+                    brace_count += 1
+                elif char == '}':
+                    brace_count -= 1
+                elif char == '[':
+                    bracket_count += 1
+                elif char == ']':
+                    bracket_count -= 1
+                elif char == ',' and brace_count == 0 and bracket_count == 0:
+                    pairs.append(current_pair.strip())
+                    current_pair = ""
+                    continue
+                
+                current_pair += char
+            
+            if current_pair.strip():
+                pairs.append(current_pair.strip())
+            
+            # Process each key-value pair
+            fixed_pairs = []
+            for pair in pairs:
+                if ':' in pair:
+                    key_part, value_part = pair.split(':', 1)
+                    key = key_part.strip().strip('"').strip("'")
+                    value = value_part.strip()
+                    
+                    # Quote the key
+                    quoted_key = f'"{key}"'
+                    
+                    # Handle the value
+                    if value.lower() in ['true', 'false', 'null']:
+                        # Boolean or null values - keep as is
+                        quoted_value = value.lower()
+                    elif value.isdigit() or (value.replace('.', '', 1).isdigit() and value.count('.') <= 1):
+                        # Numeric values - keep as is
+                        quoted_value = value
+                    elif value.startswith(('"', "'")) and value.endswith(('"', "'")):
+                        # Already quoted - normalize to double quotes
+                        quoted_value = f'"{value[1:-1]}"'
+                    elif value.startswith(('[', '{')):
+                        # Nested array or object - keep as is for now
+                        quoted_value = value
+                    else:
+                        # String value - add quotes
+                        quoted_value = f'"{value}"'
+                    
+                    fixed_pairs.append(f'{quoted_key}: {quoted_value}')
+            
+            return '{' + ', '.join(fixed_pairs) + '}'
+            
+        except Exception:
+            # If fixing fails, return original
+            return obj_str
 
 
 async def main():
