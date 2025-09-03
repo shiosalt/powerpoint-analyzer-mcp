@@ -332,7 +332,13 @@ class MCPTestCLI:
                         # Add new value
                         arguments[param_name].append(self._parse_single_value(value))
                     else:
-                        arguments[param_name] = self._parse_single_value(value)
+                        parsed_value = self._parse_single_value(value)
+                        # Special handling for parameters that are typically arrays
+                        if param_name in ['slide_numbers', 'attributes', 'return_fields'] and not isinstance(parsed_value, list):
+                            # Convert single values to arrays for these parameters
+                            arguments[param_name] = [parsed_value]
+                        else:
+                            arguments[param_name] = parsed_value
                     
                     i += 2
                 else:
@@ -370,11 +376,20 @@ class MCPTestCLI:
                 # If it looks like a JSON array but missing quotes around strings
                 if cleaned_value.startswith("[") and not '"' in cleaned_value and not "'" in cleaned_value:
                     # Try to fix missing quotes around array elements
-                    # Convert [item1, item2] to ["item1", "item2"]
+                    # Convert [item1, item2] to ["item1", "item2"] or [1, 2] to [1, 2]
                     content = cleaned_value[1:-1]  # Remove [ and ]
                     items = [item.strip() for item in content.split(",")]
-                    quoted_items = [f'"{item}"' for item in items if item]
-                    json_str = f'[{", ".join(quoted_items)}]'
+                    processed_items = []
+                    for item in items:
+                        if item:
+                            # Check if it's a number
+                            if item.isdigit() or (item.replace('.', '', 1).replace('-', '', 1).isdigit() and item.count('.') <= 1 and item.count('-') <= 1):
+                                processed_items.append(item)
+                            elif item.lower() in ['true', 'false', 'null']:
+                                processed_items.append(item.lower())
+                            else:
+                                processed_items.append(f'"{item}"')
+                    json_str = f'[{", ".join(processed_items)}]'
                 
                 # If it looks like a JSON object but missing quotes around keys/values
                 elif cleaned_value.startswith("{") and not '"' in cleaned_value and not "'" in cleaned_value:
@@ -399,7 +414,15 @@ class MCPTestCLI:
             for item in cleaned_value.split(","):
                 item = item.strip().strip('"').strip("'")
                 if item:  # Skip empty items
-                    items.append(item)
+                    # Try to convert to appropriate type
+                    if item.isdigit():
+                        items.append(int(item))
+                    elif item.replace(".", "", 1).isdigit():
+                        items.append(float(item))
+                    elif item.lower() in ["true", "false"]:
+                        items.append(item.lower() == "true")
+                    else:
+                        items.append(item)
             return items if len(items) > 1 else items[0] if items else cleaned_value
         
         # Regular string
@@ -530,8 +553,8 @@ class MCPTestCLI:
         if value.lower() in ['true', 'false', 'null']:
             return value.lower()
         
-        # Handle numeric values
-        if value.isdigit() or (value.replace('.', '', 1).replace('-', '', 1).isdigit() and value.count('.') <= 1):
+        # Handle numeric values (including negative numbers)
+        if value.isdigit() or (value.replace('.', '', 1).replace('-', '', 1).isdigit() and value.count('.') <= 1 and value.count('-') <= 1):
             return value
         
         # Handle already quoted strings
