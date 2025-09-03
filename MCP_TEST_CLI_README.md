@@ -140,9 +140,26 @@ python mcp_test_cli.py extract_bold_text --file_path "presentation.pptx"
 ### 特定フォーマットのテキスト抽出
 
 ```bash
+# 太字テキストの抽出
+python mcp_test_cli.py extract_text_formatting \
+  --file_path "presentation.pptx" \
+  --formatting_type "bold"
+
+# 斜体テキストの抽出
 python mcp_test_cli.py extract_text_formatting \
   --file_path "presentation.pptx" \
   --formatting_type "italic"
+
+# ハイパーリンクの抽出
+python mcp_test_cli.py extract_text_formatting \
+  --file_path "presentation.pptx" \
+  --formatting_type "hyperlinks" \
+  --slide_numbers 1,2,3
+
+# フォントサイズ情報の抽出
+python mcp_test_cli.py extract_text_formatting \
+  --file_path "presentation.pptx" \
+  --formatting_type "font_sizes"
 ```
 
 ### プレゼンテーション概要取得
@@ -180,6 +197,21 @@ python mcp_test_cli.py query_slides \
 python mcp_test_cli.py query_slides \
   --file_path "presentation.pptx" \
   --search_criteria "{slide_numbers: [1, 2, 3], content: {min_elements: 2}}"
+
+### テキストフォーマット分析
+
+```bash
+# 全スライドのフォーマット分析
+python mcp_test_cli.py analyze_text_formatting \
+  --file_path "presentation.pptx"
+
+# 特定スライドのフォーマット分析
+python mcp_test_cli.py analyze_text_formatting \
+  --file_path "presentation.pptx" \
+  --slide_numbers 1,2,3 \
+  --include_bold_analysis true \
+  --include_formatting_details true
+```
 ```
 
 ## 🔧 パラメータの指定方法
