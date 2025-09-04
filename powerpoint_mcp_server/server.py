@@ -73,7 +73,7 @@ class PowerPointMCPServer:
         """
         if slide_numbers:
             return slide_numbers
-        
+
         # Get all slide numbers
         with ZipExtractor(file_path) as extractor:
             slide_files_dict = extractor.get_slide_xml_files()
@@ -84,7 +84,7 @@ class PowerPointMCPServer:
 
     def _setup_handlers(self):
         """Set up MCP request handlers."""
-        
+
 
 
         @self.server.list_tools()
@@ -303,22 +303,13 @@ class PowerPointMCPServer:
                 ),
                 Tool(
                     name="get_presentation_overview",
-                    description="Get comprehensive presentation overview and analysis",
+                    description="Get presentation overview with basic metadata and slide classifications",
                     inputSchema={
                         "type": "object",
                         "properties": {
                             "file_path": {
                                 "type": "string",
                                 "description": "Path to the PowerPoint file (.pptx)"
-                            },
-                            "analysis_depth": {
-                                "type": "string",
-                                "enum": ["basic", "detailed", "comprehensive"],
-                                "default": "basic"
-                            },
-                            "include_sample_content": {
-                                "type": "boolean",
-                                "default": True
                             }
                         },
                         "required": ["file_path"]
@@ -578,7 +569,7 @@ class PowerPointMCPServer:
                                     if notes_xml:
                                         notes_content = self.content_extractor._extract_notes_content(notes_xml)
                                     break
-                            # No fallback - if mapping doesn't find a notes file for this slide, 
+                            # No fallback - if mapping doesn't find a notes file for this slide,
                             # it means there are no notes for this slide
                         except Exception:
                             # Notes file doesn't exist or can't be read - that's okay
@@ -660,7 +651,7 @@ class PowerPointMCPServer:
                             if notes_xml:
                                 notes_content = self.content_extractor._extract_notes_content(notes_xml)
                             break
-                    # No fallback - if mapping doesn't find a notes file for this slide, 
+                    # No fallback - if mapping doesn't find a notes file for this slide,
                     # it means there are no notes for this slide
                 except Exception:
                     # Notes file doesn't exist or can't be read - that's okay
@@ -796,7 +787,7 @@ class PowerPointMCPServer:
 
             if not file_path:
                 raise ValueError("file_path is required")
-            
+
             # Resolve slide numbers (None/empty -> all slides)
             slide_numbers = self._resolve_slide_numbers(file_path, slide_numbers)
 
@@ -864,7 +855,7 @@ class PowerPointMCPServer:
 
             # Import and use the new FormattingExtractor
             from .core.formatting_extractor import FormattingExtractor
-            
+
             # Create formatting extractor
             formatting_extractor = FormattingExtractor(self.content_extractor)
 
@@ -929,7 +920,7 @@ class PowerPointMCPServer:
 
             if not file_path:
                 raise ValueError("file_path is required")
-            
+
             # Resolve slide numbers (None/empty -> all slides)
             slide_numbers = self._resolve_slide_numbers(file_path, slide_numbers)
 
@@ -1032,12 +1023,9 @@ class PowerPointMCPServer:
             )
 
     async def _get_presentation_overview(self, arguments: Dict[str, Any]) -> CallToolResult:
-        """Get comprehensive presentation overview and analysis."""
+        """Get basic presentation overview with metadata and slide classifications."""
         try:
             file_path = arguments.get("file_path")
-            analysis_depth_str = arguments.get("analysis_depth", "basic")
-            include_sample_content = arguments.get("include_sample_content", True)
-
             if not file_path:
                 raise ValueError("file_path is required")
 
@@ -1046,27 +1034,17 @@ class PowerPointMCPServer:
             if not is_valid:
                 raise ValueError(f"File validation failed: {error_message}")
 
-            # Create configuration objects
-            analysis_depth = AnalysisDepth(analysis_depth_str)
-
-            # Analyze presentation
+            # Analyze presentation (always using basic depth)
             result = await self.presentation_analyzer.analyze_presentation(
                 file_path=file_path,
-                analysis_depth=analysis_depth,
-                include_sample_content=include_sample_content
+                analysis_depth=AnalysisDepth.BASIC,
+                include_sample_content=False
             )
 
-            # Convert result to serializable format
+            # Convert result to simplified serializable format
             serializable_result = {
                 "file_path": result.file_path,
                 "metadata": result.metadata,
-                "structure": {
-                    "total_slides": result.structure.total_slides,
-                    "slide_types": result.structure.slide_types,
-                    "sections": result.structure.sections,
-                    "content_flow": result.structure.content_flow,
-                    "structural_issues": result.structure.structural_issues
-                },
                 "slide_classifications": [
                     {
                         "slide_number": cls.slide_number,
@@ -1077,29 +1055,7 @@ class PowerPointMCPServer:
                         "object_counts": cls.object_counts
                     }
                     for cls in result.slide_classifications
-                ],
-                "content_patterns": [
-                    {
-                        "pattern_type": pattern.pattern_type,
-                        "pattern_name": pattern.pattern_name,
-                        "occurrences": pattern.occurrences,
-                        "slides": pattern.slides,
-                        "examples": pattern.examples,
-                        "confidence": pattern.confidence
-                    }
-                    for pattern in result.content_patterns
-                ],
-                "insights": {
-                    "readability_score": result.insights.readability_score,
-                    "content_density": result.insights.content_density,
-                    "visual_balance": result.insights.visual_balance,
-                    "consistency_issues": result.insights.consistency_issues,
-                    "recommendations": result.insights.recommendations,
-                    "strengths": result.insights.strengths,
-                    "areas_for_improvement": result.insights.areas_for_improvement
-                },
-                "analysis_depth": result.analysis_depth.value,
-                "sample_content": result.sample_content
+                ]
             }
 
             return CallToolResult(
@@ -1261,16 +1217,16 @@ class PowerPointMCPServer:
         """Get detailed help and documentation for MCP tools."""
         try:
             tool_name = arguments.get("tool_name")
-            
+
             if not tool_name:
                 raise ValueError("tool_name is required")
-            
+
             # Get help text for the specified tool
             help_text = get_tool_help(tool_name)
-            
+
             if not help_text or "No help available" in help_text:
                 raise ValueError(f"No help available for tool: {tool_name}")
-            
+
             return CallToolResult(
                 content=[
                     TextContent(
@@ -1279,7 +1235,7 @@ class PowerPointMCPServer:
                     )
                 ]
             )
-            
+
         except Exception as e:
             logger.error(f"Error getting tool help: {e}")
             raise McpError(
@@ -1346,10 +1302,10 @@ class PowerPointMCPServer:
         try:
             logger.info("Starting PowerPoint Analyzer MCP...")
             self._running = True
-            
+
             # Use direct JSON-RPC implementation instead of MCP library
             await self._run_direct_jsonrpc()
-            
+
         except asyncio.CancelledError:
             logger.info("Server cancelled, shutting down gracefully...")
         except BrokenPipeError:
@@ -1365,30 +1321,30 @@ class PowerPointMCPServer:
             raise
         finally:
             await self.shutdown()
-    
+
     async def _run_direct_jsonrpc(self):
         """Run server using direct JSON-RPC implementation"""
         logger.info("Starting direct JSON-RPC server...")
         logger.info("Server ready, waiting for requests...")
-        
+
         initialized = False
-        
+
         try:
             while self._running:
                 try:
                     # Read line from stdin
                     line = sys.stdin.readline()
-                    
+
                     if not line:
                         logger.info("EOF received, shutting down")
                         break
-                    
+
                     line = line.strip()
                     if not line:
                         continue
-                    
+
                     logger.info(f"Received: {line}")
-                    
+
                     # Parse JSON
                     try:
                         request = json.loads(line)
@@ -1396,11 +1352,11 @@ class PowerPointMCPServer:
                     except json.JSONDecodeError as e:
                         logger.error(f"JSON parse error: {e}")
                         continue
-                    
+
                     # Handle request
                     method = request.get("method")
                     response = None
-                    
+
                     if method == "initialize":
                         logger.info("Handling initialize request")
                         initialized = True
@@ -1463,7 +1419,7 @@ class PowerPointMCPServer:
                             params = request.get("params", {})
                             tool_name = params.get("name")
                             arguments = params.get("arguments", {})
-                            
+
                             try:
                                 result = await self._call_tool(tool_name, arguments)
                                 response = {
@@ -1490,17 +1446,17 @@ class PowerPointMCPServer:
                             "id": request.get("id"),
                             "error": {"code": -32601, "message": "Method not found"}
                         }
-                    
+
                     # Send response
                     if response is not None:
                         response_json = json.dumps(response)
                         logger.info(f"Sending response: {response_json}")
-                        
+
                         # Write to stdout and flush immediately
                         sys.stdout.write(response_json + "\\n")
                         sys.stdout.flush()
                         logger.info("Response sent and flushed")
-                
+
                 except EOFError:
                     logger.info("EOF on stdin, shutting down")
                     break
@@ -1512,13 +1468,13 @@ class PowerPointMCPServer:
                     import traceback
                     logger.error(f"Traceback: {traceback.format_exc()}")
                     continue
-        
+
         except Exception as e:
             logger.error(f"Fatal server error: {e}")
             import traceback
             logger.error(f"Traceback: {traceback.format_exc()}")
             raise
-    
+
     async def _get_tools_list(self):
         """Get tools list for direct JSON-RPC implementation"""
         return [
@@ -1584,14 +1540,14 @@ class PowerPointMCPServer:
                 }
             }
         ]
-    
+
     async def _call_tool(self, name: str, arguments: dict):
         """Call tool for direct JSON-RPC implementation"""
         logger.info(f"Calling tool: {name} with {arguments}")
-        
+
         # Sanitize arguments
         sanitized_arguments = self._sanitize_arguments(arguments)
-        
+
         if name == "extract_powerpoint_content":
             return await self._extract_powerpoint_content(sanitized_arguments)
         elif name == "get_powerpoint_attributes":
