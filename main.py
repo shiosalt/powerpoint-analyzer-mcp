@@ -86,6 +86,16 @@ async def extract_powerpoint_content(file_path: str) -> str:
         JSON string containing the complete structured content with the following format:
         {
             "file_path": str,                    # Path to the analyzed file
+            "metadata": {                        # Presentation metadata.
+                "slide_count": int,
+                "slide_size": {"width": int,"height": int},
+                "slide_master_count": int,
+                "has_notes_master": bool,
+                "has_handout_master": bool,
+                "slide_ids": [{"r_id": str,"id": str,"slide_number": int}],
+                "slide_master_ids": [str],
+                "sections": [{"name": str,"id": str,"slide_count": int,"slide_ids":{"id": str,"slide_number": int}}]
+            },
             "slides": [                          # Array of slide objects
                 {
                     "slide_number": int,         # Slide number (1-based)
@@ -96,18 +106,15 @@ async def extract_powerpoint_content(file_path: str) -> str:
                     "placeholders": [            # Array of placeholder objects
                         {
                             "type": str,         # Placeholder type (e.g., "title", "content")
-                            "text": str,         # Text content in placeholder
                             "position": [int, int], # [x, y] coordinates
                             "size": [int, int]   # [width, height] dimensions
+                            "content": str,         # Text content in placeholder
                         }
                     ],
                     "text_elements": [           # Array of text element objects
                         {
                             "content_plain": str,    # Plain text content
                             "content_formatted": str, # Formatted text content
-                            "bolded": int,           # Number of bold text runs
-                            "italicized": int,       # Number of italic text runs
-                            "underlined": int,       # Number of underlined text runs
                             "font_sizes": [int],     # Array of font sizes used
                             "font_colors": [str],    # Array of font colors (hex format)
                             "hyperlinks": [          # Array of hyperlink objects
@@ -116,6 +123,11 @@ async def extract_powerpoint_content(file_path: str) -> str:
                                     "display_text": str # Display text for the link
                                 }
                             ],
+                            "bolded": int,           # Number of bold text runs
+                            "italic": int,       # Number of italic text runs
+                            "underlined": int,       # Number of underlined text runs
+                            "highlighted": int,      # Number of highlighted text runs
+                            "strikethrough": int,      # Number of strikethrough text runs
                             "position": [int, int],  # [x, y] coordinates
                             "size": [int, int]       # [width, height] dimensions
                         }
@@ -142,22 +154,23 @@ async def extract_powerpoint_content(file_path: str) -> str:
                     }
                 }
             ],
-            "metadata": {                        # Presentation metadata
-                "slide_count": int,              # Total number of slides
-                "title": str,                    # Presentation title
-                "author": str,                   # Presentation author
-                "created_date": str,             # Creation date
-                "modified_date": str             # Last modification date
-            },
             "slide_size": {                      # Slide dimensions
                 "width_emu": int,                # Width in EMUs (English Metric Units)
                 "height_emu": int,               # Height in EMUs
                 "width_inches": float,           # Width in inches
-                "height_inches": float           # Height in inches
+                "height_inches": float,           # Height in inches
+                "width_cm": float,           # Width in cm
+                "height_cm": float,           # Height in cm
+                "width_points": float,           # Width in points
+                "height_points": float,           # Height in points
+                "aspect_ratio": float
             },
             "sections": [                        # Presentation sections (if any)
                 {
                     "name": str,                 # Section name
+                    "id": str,
+                    "slide_count": int,
+                    slide_ids":[{"id": str,"slide_number": int}],
                     "slide_range": [int, int]    # [start_slide, end_slide]
                 }
             ],
