@@ -162,7 +162,6 @@ python main.py
 5. **extract_table_data**: Extract table data with flexible selection and formatting detection
 
 #### Text Formatting Analysis
-6. **extract_bold_text**: Extract bold text from slides with location information
 7. **extract_formatted_text**: Extract text with specific formatting types (bold, italic, underline, strikethrough, highlight, hyperlinks)
 8. **get_formatting_summary**: Get summary of text formatting in the presentation
 9. **analyze_text_formatting**: Analyze text formatting patterns across slides with formatting detection

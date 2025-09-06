@@ -225,7 +225,6 @@ The server provides the following MCP tools:
 ### Analysis Tools
 - `get_presentation_overview`: Get comprehensive presentation overview and analysis
 - `analyze_text_formatting`: Analyze text formatting patterns across slides
-- `extract_bold_text`: Extract all bold text from slides with location information
 
 ### Utility Tools
 - `clear_cache`: Clear the analysis cache for specific files or all files

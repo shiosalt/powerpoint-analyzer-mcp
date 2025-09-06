@@ -85,107 +85,203 @@ async def extract_powerpoint_content(file_path: str) -> str:
     Returns:
         JSON string containing the complete structured content with the following format:
         {
-            "file_path": str,                    # Path to the analyzed file
-            "metadata": {                        # Presentation metadata.
+            "file_path": "str",
+            "metadata": {
                 "slide_count": int,
-                "slide_size": {"width": int,"height": int},
+                "slide_size": {
+                "width": int,
+                "height": int
+                },
                 "slide_master_count": int,
                 "has_notes_master": bool,
                 "has_handout_master": bool,
-                "slide_ids": [{"r_id": str,"id": str,"slide_number": int}],
-                "slide_master_ids": [str],
-                "sections": [{"name": str,"id": str,"slide_count": int,"slide_ids":{"id": str,"slide_number": int}}]
-            },
-            "slides": [                          # Array of slide objects
+                "slide_ids": [
                 {
-                    "slide_number": int,         # Slide number (1-based)
-                    "title": str,                # Slide title (null if no title)
-                    "subtitle": str,             # Slide subtitle (null if no subtitle)
-                    "layout_name": str,          # Name of the slide layout
-                    "layout_type": str,          # Type of layout (e.g., "Title Slide", "Content")
-                    "placeholders": [            # Array of placeholder objects
-                        {
-                            "type": str,         # Placeholder type (e.g., "title", "content")
-                            "position": [int, int], # [x, y] coordinates
-                            "size": [int, int]   # [width, height] dimensions
-                            "content": str,         # Text content in placeholder
-                        }
-                    ],
-                    "text_elements": [           # Array of text element objects
-                        {
-                            "content_plain": str,    # Plain text content
-                            "content_formatted": str, # Formatted text content
-                            "font_sizes": [int],     # Array of font sizes used
-                            "font_colors": [str],    # Array of font colors (hex format)
-                            "hyperlinks": [          # Array of hyperlink objects
-                                {
-                                    "url": str,      # Hyperlink URL
-                                    "display_text": str # Display text for the link
-                                }
-                            ],
-                            "bolded": int,           # Number of bold text runs
-                            "italic": int,       # Number of italic text runs
-                            "underlined": int,       # Number of underlined text runs
-                            "highlighted": int,      # Number of highlighted text runs
-                            "strikethrough": int,      # Number of strikethrough text runs
-                            "position": [int, int],  # [x, y] coordinates
-                            "size": [int, int]       # [width, height] dimensions
-                        }
-                    ],
-                    "tables": [                  # Array of table objects
-                        {
-                            "rows": int,         # Number of rows
-                            "columns": int,      # Number of columns
-                            "cells": [           # Array of cell data
-                                {
-                                    "row": int,  # Row index (0-based)
-                                    "col": int,  # Column index (0-based)
-                                    "text": str  # Cell text content
-                                }
-                            ]
-                        }
-                    ],
-                    "notes": str,                # Speaker notes content
-                    "object_counts": {           # Count of different object types
-                        "text_boxes": int,       # Number of text boxes
-                        "tables": int,           # Number of tables
-                        "images": int,           # Number of images
-                        "shapes": int            # Number of shapes
+                    "r_id": "str",
+                    "id": "str",
+                    "slide_number": int
+                }
+                ],
+                "slide_master_ids": ["str"],
+                "sections": [
+                {
+                    "name": "str",
+                    "id": "str",
+                    "slide_count": int,
+                    "slide_ids": {
+                    "id": "str",
+                    "slide_number": int
                     }
                 }
+                ]
+            },
+            "slides": [
+                {
+                "slide_number": int,
+                "title": "str",
+                "subtitle": "str",
+                "layout_name": "str",
+                "layout_type": "str",
+                "placeholders": [
+                    {
+                    "type": "str",
+                    "position": [int, int],
+                    "size": [int, int],
+                    "content": "str"
+                    }
+                ],
+                "text_elements": [
+                    {
+                    "content_plain": "str",
+                    "content_formatted": "str",
+                    "font_sizes": [int],
+                    "font_colors": ["str"],
+                    "hyperlinks": [
+                        {
+                        "url": "str",
+                        "display_text": "str"
+                        }
+                    ],
+                    "bolded": int,
+                    "italic": int,
+                    "underlined": int,
+                    "highlighted": int,
+                    "strikethrough": int,
+                    "position": [int, int],
+                    "size": [int, int]
+                    }
+                ],
+                "tables": [
+                    {
+                    "rows": int,
+                    "columns": int,
+                    "cells": [
+                        {
+                        "row": int,
+                        "col": int,
+                        "text": "str"
+                        }
+                    ]
+                    }
+                ],
+                "notes": "str",
+                "object_counts": {
+                    "text_boxes": int,
+                    "tables": int,
+                    "images": int,
+                    "shapes": int
+                }
+                }
             ],
-            "slide_size": {                      # Slide dimensions
-                "width_emu": int,                # Width in EMUs (English Metric Units)
-                "height_emu": int,               # Height in EMUs
-                "width_inches": float,           # Width in inches
-                "height_inches": float,           # Height in inches
-                "width_cm": float,           # Width in cm
-                "height_cm": float,           # Height in cm
-                "width_points": float,           # Width in points
-                "height_points": float,           # Height in points
+            "slide_size": {
+                "width_emu": int,
+                "height_emu": int,
+                "width_inches": float,
+                "height_inches": float,
+                "width_cm": float,
+                "height_cm": float,
+                "width_points": float,
+                "height_points": float,
                 "aspect_ratio": float
             },
-            "sections": [                        # Presentation sections (if any)
+            "sections": [
                 {
-                    "name": str,                 # Section name
-                    "id": str,
-                    "slide_count": int,
-                    slide_ids":[{"id": str,"slide_number": int}],
-                    "slide_range": [int, int]    # [start_slide, end_slide]
+                "name": "str",
+                "id": "str",
+                "slide_count": int,
+                "slide_ids": [
+                    {
+                    "id": "str",
+                    "slide_number": int
+                    }
+                ],
+                "slide_range": [int, int]
                 }
             ],
-            "notes": [                           # Speaker notes for all slides
+            "notes": [
                 {
-                    "slide_number": int,         # Slide number
-                    "notes_content": str         # Notes text content
+                "slide_number": int,
+                "notes_content": "str"
                 }
             ]
-        }
+            }
 
         If an error occurs, returns:
         {
-            "error": str                         # Error message describing what went wrong
+            "error": str
         }
+
+    | key | type | description |
+    |------|------|-------------|
+    | metadata | object | Presentation metadata including slide count, size, and master info |
+    | metadata.slide_count | int | Total number of slides |
+    | metadata.slide_size.width | int | Width of slide in pixels |
+    | metadata.slide_size.height | int | Height of slide in pixels |
+    | metadata.slide_master_count | int | Number of slide master templates |
+    | metadata.has_notes_master | bool | Whether notes master exists |
+    | metadata.has_handout_master | bool | Whether handout master exists |
+    | metadata.slide_ids[].r_id | str | Relationship ID of the slide |
+    | metadata.slide_ids[].id | str | Internal slide ID |
+    | metadata.slide_ids[].slide_number | int | Slide number (1-based) |
+    | metadata.slide_master_ids[] | str | List of slide master IDs |
+    | metadata.sections[].name | str | Section name |
+    | metadata.sections[].id | str | Section ID |
+    | metadata.sections[].slide_count | int | Number of slides in section |
+    | metadata.sections[].slide_ids.id | str | Slide ID in section |
+    | metadata.sections[].slide_ids.slide_number | int | Slide number in section |
+    | slides | array | Array of slide objects containing layout, content, and objects |
+    | slides[].slide_number | int | Slide number (1-based) |
+    | slides[].title | str | Title of the slide |
+    | slides[].subtitle | str | Subtitle of the slide |
+    | slides[].layout_name | str | Name of the slide layout |
+    | slides[].layout_type | str | Type of layout (e.g., "Title Slide") |
+    | slides[].placeholders[].type | str | Placeholder type (e.g., "title") |
+    | slides[].placeholders[].position | [int, int] | [x, y] coordinates |
+    | slides[].placeholders[].size | [int, int] | [width, height] dimensions |
+    | slides[].placeholders[].content | str | Text content in placeholder |
+    | slides[].text_elements[].content_plain | str | Plain text content |
+    | slides[].text_elements[].content_formatted | str | Formatted text content |
+    | slides[].text_elements[].font_sizes[] | int | Font sizes used |
+    | slides[].text_elements[].font_colors[] | str | Font colors in hex |
+    | slides[].text_elements[].hyperlinks[].url | str | Hyperlink URL |
+    | slides[].text_elements[].hyperlinks[].display_text | str | Display text for hyperlink |
+    | slides[].text_elements[].bolded | int | Count of bold text runs |
+    | slides[].text_elements[].italic | int | Count of italic text runs |
+    | slides[].text_elements[].underlined | int | Count of underlined text runs |
+    | slides[].text_elements[].highlighted | int | Count of highlighted text runs |
+    | slides[].text_elements[].strikethrough | int | Count of strikethrough text runs |
+    | slides[].text_elements[].position | [int, int] | [x, y] coordinates |
+    | slides[].text_elements[].size | [int, int] | [width, height] dimensions |
+    | slides[].tables[].rows | int | Number of rows in table |
+    | slides[].tables[].columns | int | Number of columns in table |
+    | slides[].tables[].cells[].row | int | Row index (0-based) |
+    | slides[].tables[].cells[].col | int | Column index (0-based) |
+    | slides[].tables[].cells[].text | str | Cell text content |
+    | slides[].notes | str | Speaker notes content |
+    | slides[].object_counts.text_boxes | int | Number of text boxes |
+    | slides[].object_counts.tables | int | Number of tables |
+    | slides[].object_counts.images | int | Number of images |
+    | slides[].object_counts.shapes | int | Number of shapes |
+    | slide_size | object | Slide dimensions in various units |
+    | slide_size.width_emu | int | Width in EMUs |
+    | slide_size.height_emu | int | Height in EMUs |
+    | slide_size.width_inches | float | Width in inches |
+    | slide_size.height_inches | float | Height in inches |
+    | slide_size.width_cm | float | Width in centimeters |
+    | slide_size.height_cm | float | Height in centimeters |
+    | slide_size.width_points | float | Width in points |
+    | slide_size.height_points | float | Height in points |
+    | slide_size.aspect_ratio | float | Aspect ratio of slide |
+    | sections | array | Presentation sections (if any) |
+    | sections[].name | str | Section name |
+    | sections[].id | str | Section ID |
+    | sections[].slide_count | int | Number of slides in section |
+    | sections[].slide_ids[].id | str | Slide IDs |
+    | sections[].slide_ids[].slide_number | int | Slide number |
+    | sections[].slide_range | [int, int] | Start and end slide numbers |
+    | notes | array | Speaker notes for all slides |
+    | notes[].slide_number | int | Slide number |
+    | notes[].notes_content | str | Notes text content |
 
     Example Usage:
         extract_powerpoint_content("quarterly_report.pptx")
@@ -250,31 +346,47 @@ async def get_powerpoint_attributes(file_path: str, attributes: List[str]) -> st
     Returns:
         JSON string containing only the requested attributes with the following structure:
         {
-            "file_path": str,                    # Path to the analyzed file
-            "slides": [                          # Array of slide objects with only requested attributes
+            "file_path": "str",
+            "slides": [
                 {
-                    "slide_number": int,         # Always included for reference
-                    # Only requested attributes will be present:
-                    "title": str,                # If "title" was requested
-                    "subtitle": str,             # If "subtitle" was requested
-                    "text_elements": [...],      # If "text" or "text_elements" was requested
-                    "tables": [...],             # If "tables" was requested
-                    "object_counts": {...},      # If "object_counts" was requested
-                    "layout_name": str,          # If "layout" was requested
-                    "layout_type": str,          # If "layout" was requested
-                    "placeholders": [...],       # If "placeholders" was requested
-                    "notes": str                 # If "notes" was requested
+                "slide_number": int,
+                "title": "str",
+                "subtitle": "str",
+                "text_elements": [...],
+                "tables": [...],
+                "object_counts": {...},
+                "layout_name": "str",
+                "layout_type": "str",
+                "placeholders": [...],
+                "notes": "str"
                 }
             ],
-            # These may be included based on requested attributes:
-            "slide_size": {...},                 # If "size" was requested
-            "sections": [...],                   # If "sections" was requested
-            "metadata": {...}                    # Basic metadata always included
+            "slide_size": {...},
+            "sections": [...],
+            "metadata": {...}
         }
+
+        | key | type | description |
+        |------|------|-------------|
+        | file_path | str | Path to the analyzed file |
+        | slides | array | Array of slide objects with only requested attributes |
+        | slides[].slide_number | int | Slide number (always included for reference) |
+        | slides[].title | str | Slide title (included if "title" was requested) |
+        | slides[].subtitle | str | Slide subtitle (included if "subtitle" was requested) |
+        | slides[].text_elements | array | Array of text elements (included if "text" or "text_elements" was requested) |
+        | slides[].tables | array | Array of table objects (included if "tables" was requested) |
+        | slides[].object_counts | object | Object type counts (included if "object_counts" was requested) |
+        | slides[].layout_name | str | Name of the slide layout (included if "layout" was requested) |
+        | slides[].layout_type | str | Type of layout (included if "layout" was requested) |
+        | slides[].placeholders | array | Array of placeholder objects (included if "placeholders" was requested) |
+        | slides[].notes | str | Speaker notes content (included if "notes" was requested) |
+        | slide_size | object | Slide dimensions (included if "size" was requested) |
+        | sections | array | Presentation sections (included if "sections" was requested) |
+        | metadata | object | Basic metadata always included |
 
         If an error occurs, returns:
         {
-            "error": str                         # Error message describing what went wrong
+            "error": str
         }
 
     Example Usage:
@@ -732,32 +844,46 @@ async def extract_text_formatting(file_path: str, formatting_type: str, slide_nu
     Returns:
         JSON string with the following structure:
         {
-            "file_path": str,                    # Path to the analyzed file
-            "formatting_type": str,              # Type of formatting that was extracted
+            "file_path": "str",
+            "formatting_type": "str",
             "summary": {
-                "total_slides_analyzed": int,    # Number of slides that were analyzed
-                "slides_with_formatting": int,   # Number of slides containing the requested formatting
-                "total_formatted_segments": int # Total number of formatted text segments found
+                "total_slides_analyzed": int,
+                "slides_with_formatting": int,
+                "total_formatted_segments": int
             },
             "results_by_slide": [
                 {
-                    "slide_number": int,         # Slide number (1-based)
-                    "title": str,                # Slide title (empty string if no title)
-                    "complete_text": str,        # Complete text content from all text elements
-                    "format": str,               # Formatting type (same as input parameter)
-                    "formatted_segments": [      # Array of formatted text segments
-                        {
-                            "text": str,         # The formatted text content
-                            "start_position": int # Character position where formatted text starts
-                        }
-                    ]
+                "slide_number": int,
+                "title": "str",
+                "complete_text": "str",
+                "format": "str",
+                "formatted_segments": [
+                    {
+                    "text": "str",
+                    "start_position": int
+                    }
+                ]
                 }
             ]
         }
 
+        | key | type | description |
+        |------|------|-------------|
+        | file_path | str | Path to the analyzed file |
+        | formatting_type | str | Type of formatting that was extracted (e.g., bold, italic) |
+        | summary.total_slides_analyzed | int | Number of slides that were analyzed |
+        | summary.slides_with_formatting | int | Number of slides containing the requested formatting |
+        | summary.total_formatted_segments | int | Total number of formatted text segments found |
+        | results_by_slide[].slide_number | int | Slide number (1-based) |
+        | results_by_slide[].title | str | Slide title (empty string if no title) |
+        | results_by_slide[].complete_text | str | Complete text content from all text elements |
+        | results_by_slide[].format | str | Formatting type (same as input parameter) |
+        | results_by_slide[].formatted_segments[].text | str | The formatted text content |
+        | results_by_slide[].formatted_segments[].start_position | int | Character position where formatted text starts |
+
         If an error occurs, returns:
         {
-            "error": str                         # Error message describing what went wrong
+            "error": str
         }
 
     Example Usage:
@@ -799,173 +925,6 @@ async def extract_text_formatting(file_path: str, formatting_type: str, slide_nu
             "file_path": file_path,
             "formatting_type": formatting_type
         }, indent=2)
-
-@mcp.tool
-async def extract_bold_text(file_path: str, slide_numbers: Optional[List[int]] = None) -> str:
-    """Extract all bold text from slides with enhanced location and formatting information.
-
-    This tool provides backward-compatible bold text extraction with enhanced response format
-    that includes both legacy fields and new position-aware segments. It analyzes PowerPoint
-    slides to identify bold text formatting and returns detailed information about bold content.
-
-    Args:
-        file_path: Path to the PowerPoint file (.pptx). Must be a valid PowerPoint file.
-                  Example: "presentation.pptx" or "/path/to/slides.pptx"
-
-        slide_numbers: Optional list of specific slide numbers to analyze (1-based indexing).
-                      If not provided, analyzes all slides in the presentation.
-                      Example: [1, 3, 5] to analyze only slides 1, 3, and 5
-
-    Returns:
-        JSON string with the following structure:
-        {
-            "file_path": str,                    # Path to the analyzed file
-            "bold_text_summary": {
-                "total_slides_analyzed": int,    # Number of slides that were analyzed
-                "slides_with_bold_text": int,    # Number of slides containing bold text
-                "total_bold_elements": int       # Total number of bold text elements found
-            },
-            "bold_text_by_slide": [
-                {
-                    "slide_number": int,         # Slide number (1-based)
-                    "title": str,                # Slide title (empty string if no title)
-                    "complete_text": str,        # NEW: Complete text content from all text elements
-                    "bold_elements": [           # LEGACY: Original format for backward compatibility
-                        {
-                            "content": str,      # Full text content of element containing bold text
-                            "bold_count": int,   # Number of bold text runs in this element
-                            "font_sizes": list,  # Font sizes found in this element
-                            "font_colors": list, # Font colors found in this element
-                            "position": list,    # Element position [x, y] coordinates
-                            "size": list,        # Element size [width, height]
-                            "content_type": str, # Type of content ("text_elements")
-                            "element_index": int # Index of this element within the slide
-                        }
-                    ],
-                    "bold_segments": [           # NEW: Enhanced format with position information
-                        {
-                            "text": str,         # The bold text content
-                            "start_position": int, # Character position where bold text starts
-                            "end_position": int  # Character position where bold text ends
-                        }
-                    ],
-                    "bold_count": int            # Total count of bold elements on this slide
-                }
-            ]
-        }
-
-        If an error occurs, returns:
-        {
-            "error": str                         # Error message describing what went wrong
-        }
-
-    Example Usage:
-        extract_bold_text("slides.pptx")
-        # Returns all bold text from all slides with both legacy and enhanced formats
-
-        extract_bold_text("slides.pptx", [1, 2])
-        # Returns bold text from slides 1 and 2 only
-
-    Note: This tool maintains backward compatibility by including both the original 'bold_elements'
-    format and the new 'bold_segments' format with position information. New applications should
-    use the 'bold_segments' array for more precise text positioning.
-    """
-    logger.info(f"extract_bold_text called with file_path: {file_path}, slide_numbers: {slide_numbers}")
-
-    try:
-        server = get_powerpoint_server()
-
-        # First get the full content
-        arguments = {"file_path": file_path}
-        result = await server._extract_powerpoint_content(arguments)
-
-        # Extract text content from CallToolResult
-        content_text = ""
-        if result.content:
-            for content_item in result.content:
-                if hasattr(content_item, 'text'):
-                    content_text += content_item.text
-
-        # Parse the JSON content to extract bold text information
-        content_data = json.loads(content_text)
-
-        # Import the new formatting extractor
-        from powerpoint_mcp_server.core.formatting_extractor import FormattingExtractor
-        formatting_extractor = FormattingExtractor(server.content_extractor)
-
-        bold_text_analysis = {
-            "file_path": file_path,
-            "bold_text_summary": {
-                "total_slides_analyzed": 0,
-                "slides_with_bold_text": 0,
-                "total_bold_elements": 0
-            },
-            "bold_text_by_slide": []
-        }
-
-        for slide_data in content_data.get('slides', []):
-            slide_num = slide_data.get('slide_number', 0)
-
-            if slide_numbers and slide_num not in slide_numbers:
-                continue
-
-            bold_text_analysis["bold_text_summary"]["total_slides_analyzed"] += 1
-
-            # Build complete text from all text elements
-            text_elements = slide_data.get('text_elements', [])
-            complete_text = ' '.join([elem.get('content_plain', '') for elem in text_elements])
-
-            # Extract bold segments using the new extractor
-            bold_segments = formatting_extractor.extract_formatting_segments(
-                text_elements, "bold", slide_num
-            )
-
-            slide_bold_info = {
-                "slide_number": slide_num,
-                "title": slide_data.get('title', ''),
-                "complete_text": complete_text,  # New field: complete text content
-                "bold_elements": [],  # Legacy format for backward compatibility
-                "bold_segments": [],  # New field: array of bold text segments
-                "bold_count": 0
-            }
-
-            # Legacy format: Analyze text elements for bold formatting
-            for idx, text_elem in enumerate(slide_data.get('text_elements', [])):
-                if text_elem.get('bolded', 0) > 0:
-                    bold_element = {
-                        "content": text_elem.get('content_plain', ''),
-                        "bold_count": text_elem.get('bolded', 0),
-                        "font_sizes": text_elem.get('font_sizes', []),
-                        "font_colors": text_elem.get('font_colors', []),
-                        "position": text_elem.get('position', []),
-                        "size": text_elem.get('size', []),
-                        "content_type": "text_elements",
-                        "element_index": idx
-                    }
-                    slide_bold_info["bold_elements"].append(bold_element)
-                    slide_bold_info["bold_count"] += text_elem.get('bolded', 0)
-
-            # New format: Add bold segments with position information
-            for segment in bold_segments:
-                slide_bold_info["bold_segments"].append({
-                    "text": segment.text,
-                    "start_position": segment.start_position,
-                    "end_position": segment.end_position
-                })
-
-            if slide_bold_info["bold_count"] > 0 or bold_segments:
-                bold_text_analysis["bold_text_summary"]["slides_with_bold_text"] += 1
-                bold_text_analysis["bold_text_summary"]["total_bold_elements"] += max(slide_bold_info["bold_count"], len(bold_segments))
-
-            # Include all slides if no filter, or only slides with bold text if filtering
-            if not slide_numbers or slide_bold_info["bold_elements"] or bold_segments:
-                bold_text_analysis["bold_text_by_slide"].append(slide_bold_info)
-
-        return json.dumps(bold_text_analysis, indent=2, ensure_ascii=False)
-
-    except Exception as e:
-        logger.error(f"Error in extract_bold_text: {e}")
-        return f"Error: {str(e)}"
 
 @mcp.tool
 async def tool_help(tool_name: str) -> str:

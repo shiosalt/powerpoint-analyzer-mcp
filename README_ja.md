@@ -163,7 +163,6 @@ python main.py
 5. **extract_table_data**: 選択とフォーマット検出でテーブルデータを抽出
 
 #### テキスト書式分析
-6. **extract_bold_text**: 位置情報付きでスライドから太字テキストを抽出
 7. **extract_formatted_text**: 特定の書式タイプ（太字、斜体、下線、取り消し線、ハイライト、ハイパーリンク）のテキストを抽出
 8. **get_formatting_summary**: プレゼンテーション内のテキスト書式のサマリーを取得
 9. **analyze_text_formatting**: スライド全体のテキスト書式パターンを分析

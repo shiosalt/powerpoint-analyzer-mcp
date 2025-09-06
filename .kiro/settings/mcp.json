@@ -16,10 +16,7 @@
         "analyze_text_formatting",
         "clear_cache",
         "reload_file_content",
-        "extract_bold_text",
-        "extract_bold_text",
         "clear_cache",
-        "extract_bold_text"
       ]
     }
   }

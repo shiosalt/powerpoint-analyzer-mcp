@@ -28,8 +28,6 @@ python mcp_test_cli.py
  2. get_powerpoint_attributes
     Get specific attributes from PowerPoint slides with selective extraction.
 
- 3. extract_bold_text
-    Extract bold text from slides with location information.
 ...
 ```
 
@@ -129,12 +127,6 @@ python mcp_test_cli.py get_powerpoint_attributes \
 python mcp_test_cli.py get_slide_info \
   --file_path "presentation.pptx" \
   --slide_number 1
-```
-
-### 太字テキスト抽出
-
-```bash
-python mcp_test_cli.py extract_bold_text --file_path "presentation.pptx"
 ```
 
 ### 特定フォーマットのテキスト抽出

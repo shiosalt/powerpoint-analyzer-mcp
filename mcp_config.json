@@ -17,7 +17,6 @@
         "get_presentation_overview",
         "clear_cache",
         "reload_file_content",
-        "extract_bold_text"
       ]
     }
   }
