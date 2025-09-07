@@ -13,7 +13,7 @@ from pathlib import Path
 
 def run_cli(*args):
     """Run the MCP test CLI with given arguments."""
-    cmd = ["python", "mcp_test_cli.py"] + list(args)
+    cmd = ["python", "tests/mcp_test_cli.py"] + list(args)
     return subprocess.run(cmd, capture_output=False)
 
 

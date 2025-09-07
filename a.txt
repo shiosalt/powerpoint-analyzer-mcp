@@ -1,0 +1,624 @@
+✅ MCP server started: python main.py
+✅ MCP server initialized
+🚀 Executing tool: extract_table_data
+📝 Arguments: {
+  "file_path": "tests/test_files/test_complex2.pptx"
+}
+
+
+✅ Tool Execution Result:
+==============================
+{
+  "extracted_tables": [
+    {
+      "slide_number": 4,
+      "table_index": 0,
+      "rows": 3,
+      "columns": 2,
+      "headers": [
+        "Header 1",
+        "Header 2"
+      ],
+      "data": [
+        {
+          "Header 1": {
+            "value": "Header 1",
+            "formatting": {
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "highlight": false,
+              "strikethrough": false,
+              "font_color": null,
+              "background_color": null,
+              "font_size": null,
+              "hyperlink": null
+            },
+            "row_span": 1,
+            "col_span": 1,
+            "row_col_position": [
+              0,
+              0
+            ]
+          },
+          "Header 2": {
+            "value": "Header 2",
+            "formatting": {
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "highlight": false,
+              "strikethrough": false,
+              "font_color": null,
+              "background_color": null,
+              "font_size": null,
+              "hyperlink": null
+            },
+            "row_span": 1,
+            "col_span": 1,
+            "row_col_position": [
+              0,
+              1
+            ]
+          }
+        },
+        {
+          "Header 1": {
+            "value": "Data 1",
+            "formatting": {
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "highlight": false,
+              "strikethrough": false,
+              "font_color": null,
+              "background_color": null,
+              "font_size": 11.0,
+              "hyperlink": null
+            },
+            "row_span": 1,
+            "col_span": 1,
+            "row_col_position": [
+              1,
+              0
+            ]
+          },
+          "Header 2": {
+            "value": "Data 2",
+            "formatting": {
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "highlight": false,
+              "strikethrough": false,
+              "font_color": null,
+              "background_color": null,
+              "font_size": 11.0,
+              "hyperlink": null
+            },
+            "row_span": 1,
+            "col_span": 1,
+            "row_col_position": [
+              1,
+              1
+            ]
+          }
+        },
+        {
+          "Header 1": {
+            "value": "Data 3",
+            "formatting": {
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "highlight": false,
+              "strikethrough": false,
+              "font_color": null,
+              "background_color": null,
+              "font_size": 11.0,
+              "hyperlink": null
+            },
+            "row_span": 1,
+            "col_span": 1,
+            "row_col_position": [
+              2,
+              0
+            ]
+          },
+          "Header 2": {
+            "value": "Data 4",
+            "formatting": {
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "highlight": false,
+              "strikethrough": false,
+              "font_color": null,
+              "background_color": null,
+              "font_size": 11.0,
+              "hyperlink": null
+            },
+            "row_span": 1,
+            "col_span": 1,
+            "row_col_position": [
+              2,
+              1
+            ]
+          }
+        }
+      ],
+      "metadata": {
+        "has_formatting": false,
+        "cell_count": 6,
+        "non_empty_cells": 6
+      },
+      "position": [
+        2547257,
+        1280160
+      ],
+      "size": [
+        3657600,
+        1097280
+      ]
+    },
+    {
+      "slide_number": 4,
+      "table_index": 1,
+      "rows": 10,
+      "columns": 2,
+      "headers": [
+        "表２項目",
+        "表示値"
+      ],
+      "data": [
+        {
+          "表２項目": {
+            "value": "表２項目",
+            "formatting": {
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "highlight": false,
+              "strikethrough": false,
+              "font_color": null,
+              "background_color": null,
+              "font_size": 11.0,
+              "hyperlink": null
+            },
+            "row_span": 1,
+            "col_span": 1,
+            "row_col_position": [
+              0,
+              0
+            ]
+          },
+          "表示値": {
+            "value": "表示値",
+            "formatting": {
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "highlight": false,
+              "strikethrough": false,
+              "font_color": null,
+              "background_color": null,
+              "font_size": 11.0,
+              "hyperlink": null
+            },
+            "row_span": 1,
+            "col_span": 1,
+            "row_col_position": [
+              0,
+              1
+            ]
+          }
+        },
+        {
+          "表２項目": {
+            "value": "太字 (bolded) ",
+            "formatting": {
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "highlight": false,
+              "strikethrough": false,
+              "font_color": null,
+              "background_color": null,
+              "font_size": 11.0,
+              "hyperlink": null
+            },
+            "row_span": 1,
+            "col_span": 1,
+            "row_col_position": [
+              1,
+              0
+            ]
+          },
+          "表示値": {
+            "value": "むかしむかし",
+            "formatting": {
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "highlight": false,
+              "strikethrough": false,
+              "font_color": null,
+              "background_color": null,
+              "font_size": 11.0,
+              "hyperlink": null
+            },
+            "row_span": 1,
+            "col_span": 1,
+            "row_col_position": [
+              1,
+              1
+            ]
+          }
+        },
+        {
+          "表２項目": {
+            "value": "斜体 (italic) ",
+            "formatting": {
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "highlight": false,
+              "strikethrough": false,
+              "font_color": null,
+              "background_color": null,
+              "font_size": 11.0,
+              "hyperlink": null
+            },
+            "row_span": 1,
+            "col_span": 1,
+            "row_col_position": [
+              2,
+              0
+            ]
+          },
+          "表示値": {
+            "value": "あるところに",
+            "formatting": {
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "highlight": false,
+              "strikethrough": false,
+              "font_color": null,
+              "background_color": null,
+              "font_size": 11.0,
+              "hyperlink": null
+            },
+            "row_span": 1,
+            "col_span": 1,
+            "row_col_position": [
+              2,
+              1
+            ]
+          }
+        },
+        {
+          "表２項目": {
+            "value": "下線 (underlined) ",
+            "formatting": {
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "highlight": false,
+              "strikethrough": false,
+              "font_color": null,
+              "background_color": null,
+              "font_size": 11.0,
+              "hyperlink": null
+            },
+            "row_span": 1,
+            "col_span": 1,
+            "row_col_position": [
+              3,
+              0
+            ]
+          },
+          "表示値": {
+            "value": "おじいさんと",
+            "formatting": {
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "highlight": false,
+              "strikethrough": false,
+              "font_color": null,
+              "background_color": null,
+              "font_size": 11.0,
+              "hyperlink": null
+            },
+            "row_span": 1,
+            "col_span": 1,
+            "row_col_position": [
+              3,
+              1
+            ]
+          }
+        },
+        {
+          "表２項目": {
+            "value": "ハイライト (highlighted) ",
+            "formatting": {
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "highlight": false,
+              "strikethrough": false,
+              "font_color": null,
+              "background_color": null,
+              "font_size": 11.0,
+              "hyperlink": null
+            },
+            "row_span": 1,
+            "col_span": 1,
+            "row_col_position": [
+              4,
+              0
+            ]
+          },
+          "表示値": {
+            "value": "おばあさんが",
+            "formatting": {
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "highlight": true,
+              "strikethrough": false,
+              "font_color": null,
+              "background_color": null,
+              "font_size": 11.0,
+              "hyperlink": null
+            },
+            "row_span": 1,
+            "col_span": 1,
+            "row_col_position": [
+              4,
+              1
+            ]
+          }
+        },
+        {
+          "表２項目": {
+            "value": "取り消し線 (strikethrough) ",
+            "formatting": {
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "highlight": false,
+              "strikethrough": false,
+              "font_color": null,
+              "background_color": null,
+              "font_size": 11.0,
+              "hyperlink": null
+            },
+            "row_span": 1,
+            "col_span": 1,
+            "row_col_position": [
+              5,
+              0
+            ]
+          },
+          "表示値": {
+            "value": "住んでいました",
+            "formatting": {
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "highlight": false,
+              "strikethrough": false,
+              "font_color": null,
+              "background_color": null,
+              "font_size": 11.0,
+              "hyperlink": null
+            },
+            "row_span": 1,
+            "col_span": 1,
+            "row_col_position": [
+              5,
+              1
+            ]
+          }
+        },
+        {
+          "表２項目": {
+            "value": "ハイパーリンク(hyperlinks)",
+            "formatting": {
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "highlight": false,
+              "strikethrough": false,
+              "font_color": null,
+              "background_color": null,
+              "font_size": 11.0,
+              "hyperlink": null
+            },
+            "row_span": 1,
+            "col_span": 1,
+            "row_col_position": [
+              6,
+              0
+            ]
+          },
+          "表示値": {
+            "value": "ある日",
+            "formatting": {
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "highlight": false,
+              "strikethrough": false,
+              "font_color": null,
+              "background_color": null,
+              "font_size": 11.0,
+              "hyperlink": "present"
+            },
+            "row_span": 1,
+            "col_span": 1,
+            "row_col_position": [
+              6,
+              1
+            ]
+          }
+        },
+        {
+          "表２項目": {
+            "value": "フォントサイズ (font_sizes) ",
+            "formatting": {
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "highlight": false,
+              "strikethrough": false,
+              "font_color": null,
+              "background_color": null,
+              "font_size": 11.0,
+              "hyperlink": null
+            },
+            "row_span": 1,
+            "col_span": 1,
+            "row_col_position": [
+              7,
+              0
+            ]
+          },
+          "表示値": {
+            "value": "おじいさんは山へ芝刈に",
+            "formatting": {
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "highlight": false,
+              "strikethrough": false,
+              "font_color": null,
+              "background_color": null,
+              "font_size": 11.0,
+              "hyperlink": null
+            },
+            "row_span": 1,
+            "col_span": 1,
+            "row_col_position": [
+              7,
+              1
+            ]
+          }
+        },
+        {
+          "表２項目": {
+            "value": "フォントの色(font_colors)",
+            "formatting": {
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "highlight": false,
+              "strikethrough": false,
+              "font_color": null,
+              "background_color": null,
+              "font_size": 11.0,
+              "hyperlink": null
+            },
+            "row_span": 1,
+            "col_span": 1,
+            "row_col_position": [
+              8,
+              0
+            ]
+          },
+          "表示値": {
+            "value": "おばあさんは川へ洗濯に",
+            "formatting": {
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "highlight": false,
+              "strikethrough": false,
+              "font_color": "#00B050",
+              "background_color": null,
+              "font_size": 11.0,
+              "hyperlink": null
+            },
+            "row_span": 1,
+            "col_span": 1,
+            "row_col_position": [
+              8,
+              1
+            ]
+          }
+        },
+        {
+          "表２項目": {
+            "value": "MIX",
+            "formatting": {
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "highlight": false,
+              "strikethrough": false,
+              "font_color": null,
+              "background_color": null,
+              "font_size": 11.0,
+              "hyperlink": null
+            },
+            "row_span": 1,
+            "col_span": 1,
+            "row_col_position": [
+              9,
+              0
+            ]
+          },
+          "表示値": {
+            "value": "いきました。そのとき",
+            "formatting": {
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "highlight": true,
+              "strikethrough": false,
+              "font_color": "#C00000",
+              "background_color": null,
+              "font_size": 11.0,
+              "hyperlink": null
+            },
+            "row_span": 1,
+            "col_span": 1,
+            "row_col_position": [
+              9,
+              1
+            ]
+          }
+        }
+      ],
+      "metadata": {
+        "has_formatting": true,
+        "cell_count": 20,
+        "non_empty_cells": 20
+      },
+      "position": [
+        1300842,
+        2590801
+      ],
+      "size": [
+        6542315,
+        3779520
+      ]
+    }
+  ],
+  "summary": {
+    "total_tables_found": 2,
+    "total_tables": 2,
+    "total_rows": 13,
+    "slides_with_tables": 1,
+    "formatting_found": {
+      "bold_cells": 0,
+      "italic_cells": 0,
+      "highlighted_cells": 2,
+      "colored_cells": 2
+    },
+    "slides_processed": 4
+  }
+}
+✅ MCP server stopped
