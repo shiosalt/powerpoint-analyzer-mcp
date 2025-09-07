@@ -74,7 +74,7 @@ class EnhancedTableCell:
     formatting: CellFormatting = field(default_factory=CellFormatting)
     row_span: int = 1
     col_span: int = 1
-    position: Tuple[int, int] = (0, 0)
+    row_col_position: Tuple[int, int] = (0, 0)
 
 
 @dataclass
@@ -95,12 +95,12 @@ class EnhancedTableExtractor:
     """
     Enhanced table extractor with flexible selection and formatting detection.
     """
-    
+
     def __init__(self, content_extractor: Optional[ContentExtractor] = None):
         """Initialize the enhanced table extractor."""
         self.content_extractor = content_extractor or ContentExtractor()
         self._table_cache = {}
-    
+
     def extract_tables(
         self,
         file_path: str,
@@ -113,7 +113,7 @@ class EnhancedTableExtractor:
     ) -> Dict[str, Any]:
         """
         Extract table data with flexible selection and formatting.
-        
+
         Args:
             file_path: Path to the PowerPoint file
             slide_numbers: List of slide numbers to extract tables from
@@ -122,7 +122,7 @@ class EnhancedTableExtractor:
             formatting_detection: Configuration for formatting detection
             output_format: Output format for extracted data
             include_metadata: Whether to include table metadata
-            
+
         Returns:
             Dictionary containing extracted table data
         """
@@ -132,28 +132,28 @@ class EnhancedTableExtractor:
             column_selection = ColumnSelection()
         if formatting_detection is None:
             formatting_detection = FormattingDetection()
-        
+
         logger.info(f"Extracting tables from slides {slide_numbers} in {file_path}")
-        
+
         try:
             extracted_tables = []
             slides_processed = 0
             slides_with_tables = 0
-            
+
             with ZipExtractor(file_path) as extractor:
                 # Get slide XML files
                 slide_files_dict = extractor.get_slide_xml_files()
                 slide_files = sorted(slide_files_dict.keys())
                 total_slides = len(slide_files)
-                
+
                 logger.info(f"Total slides in presentation: {total_slides}")
                 logger.info(f"Requested slide numbers: {slide_numbers}")
-                
+
                 # Validate slide numbers
                 invalid_slides = [s for s in slide_numbers if s < 1 or s > total_slides]
                 if invalid_slides:
                     raise ValueError(f"Invalid slide numbers: {invalid_slides}. Valid range: 1-{total_slides}")
-                
+
                 for slide_num in slide_numbers:
                     try:
                         # Convert 1-based slide number to 0-based index
@@ -161,10 +161,10 @@ class EnhancedTableExtractor:
                         slide_file = slide_files[slide_index]
                         slide_xml = extractor.read_xml_content(slide_file)
                         slides_processed += 1
-                        
+
                         # Debug logging for slide number mapping
                         logger.debug(f"Processing slide_num={slide_num}, slide_index={slide_index}, slide_file={slide_file}")
-                        
+
                         if slide_xml:
                             tables = self._extract_tables_from_slide(
                                 slide_xml, slide_num, table_criteria,
@@ -178,32 +178,32 @@ class EnhancedTableExtractor:
                                 logger.info(f"No tables found on slide {slide_num}")
                         else:
                             logger.warning(f"Could not read XML content for slide {slide_num}")
-                    
+
                     except Exception as slide_error:
                         logger.error(f"Error processing slide {slide_num}: {slide_error}")
                         # Continue processing other slides
                         continue
-            
+
             # Format output based on requested format
             result = self._format_output(
                 extracted_tables, output_format, include_metadata
             )
-            
+
             # Add processing statistics to summary
             if 'summary' in result:
                 result['summary']['slides_processed'] = slides_processed
                 result['summary']['slides_with_tables'] = slides_with_tables
                 result['summary']['total_tables_found'] = len(extracted_tables)
-            
+
             logger.info(f"Extracted {len(extracted_tables)} tables from {slides_processed} slides")
             return result
-            
+
         except Exception as e:
             logger.error(f"Error extracting tables: {e}")
             import traceback
             logger.error(f"Traceback: {traceback.format_exc()}")
             raise
-    
+
     def _extract_tables_from_slide(
         self,
         slide_xml: str,
@@ -217,29 +217,29 @@ class EnhancedTableExtractor:
             root = self.content_extractor.xml_parser.parse_xml_string(slide_xml)
             if root is None:
                 return []
-            
+
             tables = []
-            
+
             # Find all graphic frames that might contain tables
             graphic_frames = self.content_extractor.xml_parser.find_elements_with_namespace(
                 root, './/p:graphicFrame'
             )
-            
+
             for table_index, frame in enumerate(graphic_frames):
                 table = self._extract_enhanced_table_from_frame(
                     frame, slide_number, table_index, table_criteria,
                     column_selection, formatting_detection
                 )
-                
+
                 if table and self._meets_table_criteria(table, table_criteria):
                     tables.append(table)
-            
+
             return tables
-            
+
         except Exception as e:
             logger.warning(f"Failed to extract tables from slide {slide_number}: {e}")
             return []
-    
+
     def _extract_enhanced_table_from_frame(
         self,
         graphic_frame,
@@ -255,35 +255,35 @@ class EnhancedTableExtractor:
             table_elem = self.content_extractor.xml_parser.find_element_with_namespace(
                 graphic_frame, './/a:tbl'
             )
-            
+
             if table_elem is None:
                 return None
-            
+
             # Extract position and size
             position, size = self.content_extractor._extract_graphic_frame_transform(graphic_frame)
-            
+
             # Parse table structure with enhanced formatting
             enhanced_table = self._parse_enhanced_table_structure(
                 table_elem, slide_number, table_index, formatting_detection
             )
-            
+
             if enhanced_table is None:
                 return None
-            
+
             # Set position and size
             enhanced_table.position = position
             enhanced_table.size = size
-            
+
             # Apply column selection
             if not column_selection.all_columns:
                 enhanced_table = self._apply_column_selection(enhanced_table, column_selection)
-            
+
             return enhanced_table
-            
+
         except Exception as e:
             logger.warning(f"Failed to extract enhanced table from frame: {e}")
             return None
-    
+
     def _parse_enhanced_table_structure(
         self,
         table_elem,
@@ -297,38 +297,38 @@ class EnhancedTableExtractor:
             rows = self.content_extractor.xml_parser.find_elements_with_namespace(
                 table_elem, './/a:tr'
             )
-            
+
             if not rows:
                 return None
-            
+
             table_data = []
             headers = []
             max_columns = 0
-            
+
             for row_index, row_elem in enumerate(rows):
                 # Find all cells in this row
                 cells = self.content_extractor.xml_parser.find_elements_with_namespace(
                     row_elem, './/a:tc'
                 )
-                
+
                 row_data = {}
-                
+
                 for col_index, cell_elem in enumerate(cells):
                     cell = self._parse_enhanced_table_cell(
                         cell_elem, formatting_detection, row_index, col_index
                     )
-                    
+
                     # Use column index as key for now, will be replaced with headers
                     column_key = f"col_{col_index}"
                     row_data[column_key] = cell
-                    
+
                     # Extract headers from first row
                     if row_index == 0:
                         headers.append(cell.value if cell.value.strip() else f"Column {col_index + 1}")
-                
+
                 table_data.append(row_data)
                 max_columns = max(max_columns, len(cells))
-            
+
             # Replace column keys with actual headers
             formatted_data = []
             for row_data in table_data:
@@ -339,10 +339,10 @@ class EnhancedTableExtractor:
                         header = headers[col_index] if col_index < len(headers) else f"Column {col_index + 1}"
                         formatted_row[header] = row_data[old_key]
                 formatted_data.append(formatted_row)
-            
+
             # Debug logging for slide number assignment
             logger.debug(f"Creating EnhancedTable with slide_number={slide_number}, table_index={table_index}")
-            
+
             # Create enhanced table
             enhanced_table = EnhancedTable(
                 slide_number=slide_number,
@@ -357,13 +357,13 @@ class EnhancedTableExtractor:
                     'non_empty_cells': self._count_non_empty_cells(formatted_data)
                 }
             )
-            
+
             return enhanced_table
-            
+
         except Exception as e:
             logger.warning(f"Failed to parse enhanced table structure: {e}")
             return None
-    
+
     def _parse_enhanced_table_cell(
         self,
         cell_elem,
@@ -375,32 +375,32 @@ class EnhancedTableExtractor:
         try:
             # Extract basic cell content
             content = self.content_extractor._extract_cell_text_content(cell_elem)
-            
+
             # Extract row span and column span
             row_span = int(cell_elem.get('rowSpan', '1'))
             col_span = int(cell_elem.get('gridSpan', '1'))
-            
+
             # Initialize formatting
             formatting = CellFormatting()
-            
+
             if formatting_detection.detect_bold or formatting_detection.detect_italic or \
                formatting_detection.detect_underline or formatting_detection.detect_colors:
                 formatting = self._extract_enhanced_cell_formatting(
                     cell_elem, formatting_detection
                 )
-            
+
             return EnhancedTableCell(
                 value=content,
                 formatting=formatting,
                 row_span=row_span,
                 col_span=col_span,
-                position=(row_index, col_index)
+                row_col_position=(row_index, col_index)
             )
-            
+
         except Exception as e:
             logger.warning(f"Failed to parse enhanced table cell: {e}")
-            return EnhancedTableCell(value="", position=(row_index, col_index))
-    
+            return EnhancedTableCell(value="", row_col_position=(row_index, col_index))
+
     def _extract_enhanced_cell_formatting(
         self,
         cell_elem,
@@ -409,7 +409,7 @@ class EnhancedTableExtractor:
         """Extract enhanced formatting information from a table cell."""
         try:
             formatting = CellFormatting()
-            
+
             # Extract cell background color
             if formatting_detection.detect_colors:
                 tc_pr = self.content_extractor.xml_parser.find_element_with_namespace(
@@ -423,22 +423,22 @@ class EnhancedTableExtractor:
                         color = self._extract_color_from_fill(solid_fill)
                         if color:
                             formatting.background_color = color
-            
+
             # Extract text formatting from runs
             tx_body = self.content_extractor.xml_parser.find_element_with_namespace(
                 cell_elem, './/a:txBody'
             )
-            
+
             if tx_body is not None:
                 runs = self.content_extractor.xml_parser.find_elements_with_namespace(
                     tx_body, './/a:r'
                 )
-                
+
                 for run in runs:
                     r_pr = self.content_extractor.xml_parser.find_element_with_namespace(
                         run, './/a:rPr'
                     )
-                    
+
                     if r_pr is not None:
                         # Check for bold
                         if formatting_detection.detect_bold:
@@ -447,7 +447,7 @@ class EnhancedTableExtractor:
                             )
                             if bold_elem is not None and bold_elem.get('val', '1') != '0':
                                 formatting.bold = True
-                        
+
                         # Check for italic
                         if formatting_detection.detect_italic:
                             italic_elem = self.content_extractor.xml_parser.find_element_with_namespace(
@@ -455,7 +455,7 @@ class EnhancedTableExtractor:
                             )
                             if italic_elem is not None and italic_elem.get('val', '1') != '0':
                                 formatting.italic = True
-                        
+
                         # Check for underline
                         if formatting_detection.detect_underline:
                             underline_elem = self.content_extractor.xml_parser.find_element_with_namespace(
@@ -463,14 +463,14 @@ class EnhancedTableExtractor:
                             )
                             if underline_elem is not None and underline_elem.get('val', 'sng') != 'none':
                                 formatting.underline = True
-                        
+
                         # Check for strikethrough
                         strike_elem = self.content_extractor.xml_parser.find_element_with_namespace(
                             r_pr, './/a:strike'
                         )
                         if strike_elem is not None and strike_elem.get('val', 'sngStrike') != 'noStrike':
                             formatting.strikethrough = True
-                        
+
                         # Extract font color
                         if formatting_detection.detect_colors:
                             solid_fill = self.content_extractor.xml_parser.find_element_with_namespace(
@@ -480,7 +480,7 @@ class EnhancedTableExtractor:
                                 color = self._extract_color_from_fill(solid_fill)
                                 if color:
                                     formatting.font_color = color
-                        
+
                         # Extract font size
                         font_size_elem = self.content_extractor.xml_parser.find_element_with_namespace(
                             r_pr, './/a:sz'
@@ -497,7 +497,7 @@ class EnhancedTableExtractor:
                             # No explicit font size found - use default for table text
                             formatting.font_size = 11.0  # Default table font size
                             logger.debug("No explicit font size found in table cell, using default: 11.0pt")
-                        
+
                         # Check for highlight
                         if formatting_detection.detect_highlight:
                             highlight_elem = self.content_extractor.xml_parser.find_element_with_namespace(
@@ -505,7 +505,7 @@ class EnhancedTableExtractor:
                             )
                             if highlight_elem is not None:
                                 formatting.highlight = True
-                
+
                 # Check for hyperlinks
                 if formatting_detection.detect_hyperlinks:
                     hyperlinks = self.content_extractor.xml_parser.find_elements_with_namespace(
@@ -520,13 +520,13 @@ class EnhancedTableExtractor:
                             logger.debug(f"Found hyperlink with relationship ID: {r_id}")
                         else:
                             formatting.hyperlink = "present"
-            
+
             return formatting
-            
+
         except Exception as e:
             logger.warning(f"Failed to extract enhanced cell formatting: {e}")
             return CellFormatting()
-    
+
     def _extract_color_from_fill(self, solid_fill) -> Optional[str]:
         """Extract color value from a solid fill element."""
         try:
@@ -538,7 +538,7 @@ class EnhancedTableExtractor:
                 color_val = srgb_clr.get('val')
                 if color_val:
                     return f"#{color_val}"
-            
+
             # Look for scheme color
             scheme_clr = self.content_extractor.xml_parser.find_element_with_namespace(
                 solid_fill, './/a:schemeClr'
@@ -547,13 +547,13 @@ class EnhancedTableExtractor:
                 color_val = scheme_clr.get('val')
                 if color_val:
                     return color_val
-            
+
             return None
-            
+
         except Exception as e:
             logger.warning(f"Failed to extract color from fill: {e}")
             return None
-    
+
     def _meets_table_criteria(self, table: EnhancedTable, criteria: TableCriteria) -> bool:
         """Check if a table meets the specified criteria."""
         try:
@@ -562,19 +562,19 @@ class EnhancedTableExtractor:
                 return False
             if criteria.max_rows is not None and table.rows > criteria.max_rows:
                 return False
-            
+
             # Check column count
             if criteria.min_columns is not None and table.columns < criteria.min_columns:
                 return False
             if criteria.max_columns is not None and table.columns > criteria.max_columns:
                 return False
-            
+
             # Check header contains
             if criteria.header_contains:
                 for required_header in criteria.header_contains:
                     if not any(required_header.lower() in header.lower() for header in table.headers):
                         return False
-            
+
             # Check header patterns
             if criteria.header_patterns:
                 for pattern in criteria.header_patterns:
@@ -585,22 +585,22 @@ class EnhancedTableExtractor:
                         # Fallback to simple string matching
                         if not any(pattern.lower() in header.lower() for header in table.headers):
                             return False
-            
+
             return True
-            
+
         except Exception as e:
             logger.warning(f"Failed to check table criteria: {e}")
             return True  # Default to including the table
-    
+
     def _apply_column_selection(
-        self, 
-        table: EnhancedTable, 
+        self,
+        table: EnhancedTable,
         column_selection: ColumnSelection
     ) -> EnhancedTable:
         """Apply column selection to filter table columns."""
         try:
             selected_headers = []
-            
+
             # Determine which columns to include
             if column_selection.specific_columns:
                 # Include specific columns by name
@@ -610,7 +610,7 @@ class EnhancedTableExtractor:
                         if col_name.lower() == header.lower():
                             selected_headers.append(header)
                             break
-            
+
             elif column_selection.column_patterns:
                 # Include columns matching patterns
                 for pattern in column_selection.column_patterns:
@@ -625,16 +625,16 @@ class EnhancedTableExtractor:
                             if pattern.lower() in header.lower():
                                 if header not in selected_headers:
                                     selected_headers.append(header)
-            
+
             else:
                 # Start with all headers
                 selected_headers = table.headers.copy()
-            
+
             # Remove excluded columns
             if column_selection.exclude_columns:
                 for exclude_col in column_selection.exclude_columns:
                     selected_headers = [h for h in selected_headers if h.lower() != exclude_col.lower()]
-            
+
             # Filter table data
             filtered_data = []
             for row in table.data:
@@ -643,18 +643,18 @@ class EnhancedTableExtractor:
                     if header in row:
                         filtered_row[header] = row[header]
                 filtered_data.append(filtered_row)
-            
+
             # Update table
             table.headers = selected_headers
             table.columns = len(selected_headers)
             table.data = filtered_data
-            
+
             return table
-            
+
         except Exception as e:
             logger.warning(f"Failed to apply column selection: {e}")
             return table
-    
+
     def _has_formatting(self, table_data: List[Dict[str, EnhancedTableCell]]) -> bool:
         """Check if any cells in the table have formatting."""
         try:
@@ -669,7 +669,7 @@ class EnhancedTableExtractor:
             return False
         except Exception:
             return False
-    
+
     def _count_non_empty_cells(self, table_data: List[Dict[str, EnhancedTableCell]]) -> int:
         """Count non-empty cells in the table."""
         try:
@@ -681,7 +681,7 @@ class EnhancedTableExtractor:
             return count
         except Exception:
             return 0
-    
+
     def _format_output(
         self,
         tables: List[EnhancedTable],
@@ -698,13 +698,13 @@ class EnhancedTableExtractor:
                 return self._format_grouped_output(tables, include_metadata)
             else:
                 return self._format_structured_output(tables, include_metadata)
-                
+
         except Exception as e:
             logger.warning(f"Failed to format output: {e}")
             import traceback
             logger.warning(f"Traceback: {traceback.format_exc()}")
             return {
-                "extracted_tables": [], 
+                "extracted_tables": [],
                 "summary": {
                     "total_tables_found": 0,
                     "total_tables": 0,
@@ -713,19 +713,19 @@ class EnhancedTableExtractor:
                     "error": f"Failed to format output: {str(e)}"
                 }
             }
-    
+
     def _format_structured_output(
-        self, 
-        tables: List[EnhancedTable], 
+        self,
+        tables: List[EnhancedTable],
         include_metadata: bool
     ) -> Dict[str, Any]:
         """Format output in structured format."""
         extracted_tables = []
-        
+
         for table in tables:
             # Debug logging for slide number in output formatting
             logger.debug(f"Formatting table output: slide_number={table.slide_number}, table_index={table.table_index}")
-            
+
             table_dict = {
                 "slide_number": table.slide_number,
                 "table_index": table.table_index,
@@ -734,12 +734,12 @@ class EnhancedTableExtractor:
                 "headers": table.headers,
                 "data": []
             }
-            
+
             if include_metadata:
                 table_dict["metadata"] = table.metadata
                 table_dict["position"] = table.position
                 table_dict["size"] = table.size
-            
+
             # Convert data to serializable format
             for row in table.data:
                 row_dict = {}
@@ -758,18 +758,18 @@ class EnhancedTableExtractor:
                             "hyperlink": cell.formatting.hyperlink
                         }
                     }
-                    
+
                     if include_metadata:
                         cell_dict["row_span"] = cell.row_span
                         cell_dict["col_span"] = cell.col_span
-                        cell_dict["position"] = cell.position
-                    
+                        cell_dict["row_col_position"] = cell.row_col_position
+
                     row_dict[header] = cell_dict
-                
+
                 table_dict["data"].append(row_dict)
-            
+
             extracted_tables.append(table_dict)
-        
+
         # Create summary
         summary = {
             "total_tables_found": len(tables),
@@ -783,20 +783,20 @@ class EnhancedTableExtractor:
                 "colored_cells": self._count_formatted_cells(tables, "color")
             }
         }
-        
+
         return {
             "extracted_tables": extracted_tables,
             "summary": summary
         }
-    
+
     def _format_flat_output(
-        self, 
-        tables: List[EnhancedTable], 
+        self,
+        tables: List[EnhancedTable],
         include_metadata: bool
     ) -> Dict[str, Any]:
         """Format output in flat format (all rows from all tables)."""
         all_rows = []
-        
+
         for table in tables:
             for row_index, row in enumerate(table.data):
                 flat_row = {
@@ -804,10 +804,10 @@ class EnhancedTableExtractor:
                     "table_index": table.table_index,
                     "row_index": row_index
                 }
-                
+
                 for header, cell in row.items():
                     flat_row[header] = cell.value
-                    
+
                     # Add formatting info if requested
                     if include_metadata:
                         flat_row[f"{header}_bold"] = cell.formatting.bold
@@ -815,9 +815,9 @@ class EnhancedTableExtractor:
                         flat_row[f"{header}_highlight"] = cell.formatting.highlight
                         if cell.formatting.font_color:
                             flat_row[f"{header}_color"] = cell.formatting.font_color
-                
+
                 all_rows.append(flat_row)
-        
+
         return {
             "data": all_rows,
             "summary": {
@@ -825,15 +825,15 @@ class EnhancedTableExtractor:
                 "total_tables": len(tables)
             }
         }
-    
+
     def _format_grouped_output(
-        self, 
-        tables: List[EnhancedTable], 
+        self,
+        tables: List[EnhancedTable],
         include_metadata: bool
     ) -> Dict[str, Any]:
         """Format output grouped by slide."""
         slides = {}
-        
+
         for table in tables:
             slide_num = table.slide_number
             if slide_num not in slides:
@@ -841,10 +841,10 @@ class EnhancedTableExtractor:
                     "slide_number": slide_num,
                     "tables": []
                 }
-            
+
             table_dict = self._format_structured_output([table], include_metadata)
             slides[slide_num]["tables"].extend(table_dict["extracted_tables"])
-        
+
         return {
             "slides": list(slides.values()),
             "summary": {
@@ -852,7 +852,7 @@ class EnhancedTableExtractor:
                 "total_tables": len(tables)
             }
         }
-    
+
     def _count_formatted_cells(self, tables: List[EnhancedTable], format_type: str) -> int:
         """Count cells with specific formatting across all tables."""
         count = 0
@@ -868,7 +868,7 @@ class EnhancedTableExtractor:
                     elif format_type == "color" and (cell.formatting.font_color or cell.formatting.background_color):
                         count += 1
         return count
-    
+
     def clear_cache(self):
         """Clear the table extraction cache."""
         self._table_cache.clear()

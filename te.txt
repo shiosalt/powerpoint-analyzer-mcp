@@ -1,0 +1,206 @@
+✅ MCP server started: python main.py
+✅ MCP server initialized
+🚀 Executing tool: get_powerpoint_attributes
+📝 Arguments: {
+  "file_path": "tests/test_files/test_complex2.pptx",
+  "attributes": [
+    "text_elements"
+  ]
+}
+
+
+✅ Tool Execution Result:
+==============================
+{
+  "slides": [
+    {
+      "slide_number": 1,
+      "text_elements": [
+        {
+          "content_plain": "Complex Test Presentation",
+          "content_formatted": "Complex Test Presentation",
+          "font_sizes": [
+            44.0
+          ],
+          "font_colors": [],
+          "hyperlinks": [],
+          "bolded": 0,
+          "italic": 0,
+          "underlined": 0,
+          "highlighted": 0,
+          "strikethrough": 0,
+          "position": [
+            0,
+            0
+          ],
+          "size": [
+            0,
+            0
+          ]
+        },
+        {
+          "content_plain": "サブタイトル",
+          "content_formatted": "サブタイトル",
+          "font_sizes": [
+            24.0
+          ],
+          "font_colors": [],
+          "hyperlinks": [],
+          "bolded": 0,
+          "italic": 0,
+          "underlined": 0,
+          "highlighted": 0,
+          "strikethrough": 0,
+          "position": [
+            0,
+            0
+          ],
+          "size": [
+            0,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "slide_number": 2,
+      "text_elements": [
+        {
+          "content_plain": "Text Slide",
+          "content_formatted": "<b>Text</b> Slide",
+          "font_sizes": [
+            44.0
+          ],
+          "font_colors": [],
+          "hyperlinks": [],
+          "bolded": 1,
+          "italic": 0,
+          "underlined": 0,
+          "highlighted": 0,
+          "strikethrough": 0,
+          "position": [
+            0,
+            0
+          ],
+          "size": [
+            0,
+            0
+          ]
+        },
+        {
+          "content_plain": "サンプルテキスト\n太字 (bolded) - int型カウンター\n斜体 (italic) - int型カウンター\n下線 (underlined) - int型カウンター\nハイライト (highlighted) - int型カウンター\n取り消し線 (strikethrough) - int型カウンター\nhttp://localhost/ ハイパーリンク (hyperlinks) - List[str]型（URLのリスト）\nフォントサイズ (font_sizes) - List[intfloat]型\nフォント色 (font_colors) - List[str]型\nごちゃまぜ",
+          "content_formatted": "サンプルテキスト\n<b>太字 </b><b>(</b><b>bolded) </b>- int型カウンター\n<i>斜体 </i><i>(</i><i>italic) </i>- int型カウンター\n<u>下線 </u><u>(</u><u>underlined) </u>- int型カウンター\n<mark>ハイライト </mark><mark>(</mark><mark>highlighted) </mark>- int型カウンター\n<s>取り消し線 </s><s>(</s><s>strikethrough) </s>- int型カウンター\nhttp://localhost/ ハイパーリンク (hyperlinks) - List[str]型（URLのリスト）\nフォントサイズ (font_sizes) - List[<s>int</s>float]型\nフォント色 (font_colors) - List[str]型\n<mark><s><u><i><b>ご</b></i></u></s></mark><s><u><i><b>ちゃま</b></i></u></s><mark><s><u><i><b>ぜ</b></i></u></s></mark>",
+          "font_sizes": [
+            10.5,
+            28.0
+          ],
+          "font_colors": [
+            "tx2",
+            "#FF0000"
+          ],
+          "hyperlinks": [
+            "http://localhost/",
+            "https://www.google.com/"
+          ],
+          "bolded": 6,
+          "italic": 6,
+          "underlined": 6,
+          "highlighted": 5,
+          "strikethrough": 7,
+          "position": [
+            839247,
+            1828800
+          ],
+          "size": [
+            7176965,
+            3016210
+          ]
+        }
+      ]
+    },
+    {
+      "slide_number": 3,
+      "text_elements": [
+        {
+          "content_plain": "Text Slide 2nd",
+          "content_formatted": "<b>Text</b> Slide 2nd",
+          "font_sizes": [
+            35.0
+          ],
+          "font_colors": [
+            "#FFFFFF"
+          ],
+          "hyperlinks": [],
+          "bolded": 1,
+          "italic": 0,
+          "underlined": 0,
+          "highlighted": 0,
+          "strikethrough": 0,
+          "position": [
+            350041,
+            586855
+          ],
+          "size": [
+            2401025,
+            3387497
+          ]
+        },
+        {
+          "content_plain": "サンプルテキスト\n太字 (bolded) - int型カウンター\n斜体 (italic) - int型カウンター\n下線 (underlined) - int型カウンター\nハイライト (highlighted) - int型カウンター\n取り消し線 (strikethrough) - int型カウンター\nhttp://localhost/ ハイパーリンク (hyperlinks) - List[str]型（URLのリスト）\nフォントサイズ (font_sizes) - List[float]型\nフォント色 (font_colors) - List[str]型\nごちゃまぜ",
+          "content_formatted": "サンプルテキスト\n<b>太字 </b><b>(</b><b>bolded) </b>- int型カウンター\n<i>斜体 </i><i>(</i><i>italic) </i>- int型カウンター\n<u>下線 </u><u>(</u><u>underlined) </u>- int型カウンター\n<mark>ハイライト </mark><mark>(</mark><mark>highlighted) </mark>- int型カウンター\n<s>取り消し線 </s><s>(</s><s>strikethrough) </s>- int型カウンター\nhttp://localhost/ ハイパーリンク (hyperlinks) - List[str]型（URLのリスト）\nフォントサイズ (font_sizes) - List[float]型\nフォント色 (font_colors) - List[str]型\n<mark><s><u><i><b>ご</b></i></u></s></mark><s><u><i><b>ちゃま</b></i></u></s><mark><s><u><i><b>ぜ</b></i></u></s></mark>",
+          "font_sizes": [
+            24.0,
+            17.0,
+            9.5
+          ],
+          "font_colors": [],
+          "hyperlinks": [
+            "http://localhost/",
+            "https://www.google.com/"
+          ],
+          "bolded": 6,
+          "italic": 6,
+          "underlined": 6,
+          "highlighted": 5,
+          "strikethrough": 6,
+          "position": [
+            3607694,
+            649480
+          ],
+          "size": [
+            4916510,
+            5546047
+          ]
+        }
+      ]
+    },
+    {
+      "slide_number": 4,
+      "text_elements": [
+        {
+          "content_plain": "Table Slide",
+          "content_formatted": "<b>Table</b> Slide",
+          "font_sizes": [
+            44.0
+          ],
+          "font_colors": [],
+          "hyperlinks": [],
+          "bolded": 1,
+          "italic": 0,
+          "underlined": 0,
+          "highlighted": 0,
+          "strikethrough": 0,
+          "position": [
+            0,
+            0
+          ],
+          "size": [
+            0,
+            0
+          ]
+        }
+      ]
+    }
+  ]
+}
+✅ MCP server stopped

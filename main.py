@@ -332,12 +332,11 @@ async def get_powerpoint_attributes(file_path: str, attributes: List[str]) -> st
         attributes: List of specific attributes to extract. Valid attribute names are:
             - "title": Slide titles only
             - "subtitle": Slide subtitles only
-            - "text": All text content (same as text_elements)
-            - "text_elements": Detailed text elements with formatting information
+            - "text": All text content
             - "tables": Table structure and content
             - "images": Image information and metadata
-            - "layout": Layout names and types
-            - "size": Slide dimensions and size information
+            - "layout": Layout names and types and content
+            - "metadata": Slide metadata
             - "sections": Presentation section information
             - "notes": Speaker notes content
             - "object_counts": Count of different object types per slide
@@ -352,7 +351,7 @@ async def get_powerpoint_attributes(file_path: str, attributes: List[str]) -> st
                 "slide_number": int,
                 "title": "str",
                 "subtitle": "str",
-                "text_elements": [...],
+                "text": [...],
                 "tables": [...],
                 "object_counts": {...},
                 "layout_name": "str",
@@ -361,7 +360,6 @@ async def get_powerpoint_attributes(file_path: str, attributes: List[str]) -> st
                 "notes": "str"
                 }
             ],
-            "slide_size": {...},
             "sections": [...],
             "metadata": {...}
         }
@@ -373,16 +371,15 @@ async def get_powerpoint_attributes(file_path: str, attributes: List[str]) -> st
         | slides[].slide_number | int | Slide number (always included for reference) |
         | slides[].title | str | Slide title (included if "title" was requested) |
         | slides[].subtitle | str | Slide subtitle (included if "subtitle" was requested) |
-        | slides[].text_elements | array | Array of text elements (included if "text" or "text_elements" was requested) |
+        | slides[].text | array | Array of text elements (included if "text" was requested) |
         | slides[].tables | array | Array of table objects (included if "tables" was requested) |
         | slides[].object_counts | object | Object type counts (included if "object_counts" was requested) |
         | slides[].layout_name | str | Name of the slide layout (included if "layout" was requested) |
         | slides[].layout_type | str | Type of layout (included if "layout" was requested) |
         | slides[].placeholders | array | Array of placeholder objects (included if "placeholders" was requested) |
         | slides[].notes | str | Speaker notes content (included if "notes" was requested) |
-        | slide_size | object | Slide dimensions (included if "size" was requested) |
         | sections | array | Presentation sections (included if "sections" was requested) |
-        | metadata | object | Basic metadata always included |
+        | metadata | object | Basic metadata |
 
         If an error occurs, returns:
         {
@@ -393,7 +390,7 @@ async def get_powerpoint_attributes(file_path: str, attributes: List[str]) -> st
         get_powerpoint_attributes("slides.pptx", ["title", "subtitle"])
         # Returns only slide titles and subtitles
 
-        get_powerpoint_attributes("slides.pptx", ["text_elements", "object_counts"])
+        get_powerpoint_attributes("slides.pptx", ["text", "object_counts"])
         # Returns text content and object counts for analysis
 
         get_powerpoint_attributes("slides.pptx", ["tables", "notes"])
@@ -552,15 +549,23 @@ async def extract_table_data(file_path: str, slide_numbers: Optional[List[int]] 
             - "flat": Flattened array of all table data
             - "grouped_by_slide": Tables grouped by slide number
 
-        include_metadata: Whether to include table metadata (position, size, formatting stats)
+        include_metadata: Whether to include table metadata (row_span,col_span,row_col_position, position, size, formatting stats)
 
     Returns:
         JSON string containing the extracted table data with structure:
         {
             "summary": {
                 "total_tables_found": int,
-                "slides_processed": int,
-                "slides_with_tables": int
+                "total_tables": int,
+                "total_rows": int,
+                "slides_with_tables": int,
+                "formatting_found": {
+                    "bold_cells": int,
+                    "italic_cells": int,
+                    "highlighted_cells": int,
+                    "colored_cells": int
+                },
+                "slides_processed": int
             },
             "extracted_tables": [
                 {
@@ -568,24 +573,35 @@ async def extract_table_data(file_path: str, slide_numbers: Optional[List[int]] 
                     "table_index": int,
                     "rows": int,
                     "columns": int,
-                    "headers": List[str],
+                    "headers": List[str,str,..],
+                    "metadata": {
+                        "has_formatting": bool,
+                        "cell_count": int,
+                        "non_empty_cells": int
+                    },
+                    "position": [int,int],
+                    "size": [int,int],
                     "data": [
                         {
-                            "column_name": {
+                            "header_name": {
                                 "value": str,
                                 "formatting": {
                                     "bold": bool,
                                     "italic": bool,
                                     "underline": bool,
                                     "highlight": bool,
-                                    "font_color": str,
-                                    "background_color": str,
-                                    "hyperlink": str
-                                }
+                                    "strikethrough": bool,
+                                    "font_color": str | null,
+                                    "background_color": str | null,
+                                    "font_size": float,
+                                    "hyperlink": str |null
+                                },
+                                "row_span": int,
+                                "col_span": int,
+                                "row_col_position": [int,int]
                             }
                         }
-                    ],
-                    "metadata": {...}  // if include_metadata is True
+                    ]
                 }
             ]
         }
@@ -599,7 +615,7 @@ async def extract_table_data(file_path: str, slide_numbers: Optional[List[int]] 
 
         # Extract tables with specific criteria
         extract_table_data("presentation.pptx", slide_numbers=[1, 2],
-                          table_criteria={"min_rows": 3, "header_contains": ["Name"]})
+                          table_criteria={"min_rows": 2, "header_contains": ["Name"]})
 
         # Extract specific columns with formatting from all slides
         extract_table_data("presentation.pptx",
