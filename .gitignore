@@ -74,3 +74,4 @@ test_mcp_*.py
 # Design documentation (development only)
 docs/
 tests/test_files/AWS_Network.pptx
+tests/test_files/test_complex2.pptx
