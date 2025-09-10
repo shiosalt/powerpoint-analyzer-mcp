@@ -74,5 +74,9 @@ test_mcp_*.py
 # Design documentation (development only)
 docs/
 tests/test_files/AWS_Network.pptx
+<<<<<<< HEAD
 npx.cmd
 .gitignore
+=======
+tests/test_files/test_complex2.pptx
+>>>>>>> 3c9772e892c0d980b38ee0b2360becd520d67cda
