@@ -49,7 +49,7 @@ class MCPTestCLI:
         self.server_process = None
         self.request_id = 1
 
-    async def start_server(self):
+    async def start_server(self,raw_mode=False):
         """Start the MCP server process."""
         try:
             self.server_process = await asyncio.create_subprocess_exec(
@@ -59,21 +59,25 @@ class MCPTestCLI:
                 stderr=asyncio.subprocess.PIPE,
                 limit=1024 * maxlen
             )
-            print(f"✅ MCP server started: {' '.join(self.server_command)}")
+            if not raw_mode:
+                print(f"✅ MCP server started: {' '.join(self.server_command)}")
             return True
         except Exception as e:
-            print(f"❌ Failed to start MCP server: {e}")
+            if not raw_mode:
+                print(f"❌ Failed to start MCP server: {e}")
             return False
 
-    async def stop_server(self):
+    async def stop_server(self,raw_mode=False):
         """Stop the MCP server process."""
         if self.server_process:
             try:
                 self.server_process.terminate()
                 await self.server_process.wait()
-                print("✅ MCP server stopped")
+                if not raw_mode:
+                    print("✅ MCP server stopped")
             except Exception as e:
-                print(f"⚠️ Error stopping server: {e}")
+                if not raw_mode:
+                    print(f"⚠️ Error stopping server: {e}")
 
     async def send_request(self, method: str, params: Dict[str, Any] = None) -> Dict[str, Any]:
         """
@@ -94,7 +98,7 @@ class MCPTestCLI:
             "method": method,
             "params": params or {}
         }
-        self.request_id += 1
+        #self.request_id += 1
 
         # Send request
         request_json = json.dumps(request) + "\n"
@@ -119,7 +123,7 @@ class MCPTestCLI:
         except json.JSONDecodeError as e:
             raise RuntimeError(f"Invalid JSON response: {e}")
 
-    async def initialize_server(self):
+    async def initialize_server(self,raw_mode=False):
         """Initialize the MCP server."""
         try:
             # Send initialize request
@@ -146,8 +150,8 @@ class MCPTestCLI:
             initialized_json = json.dumps(initialized_request) + "\n"
             self.server_process.stdin.write(initialized_json.encode())
             await self.server_process.stdin.drain()
-
-            print("✅ MCP server initialized")
+            if not raw_mode:
+                print("✅ MCP server initialized")
             return True
 
         except Exception as e:
@@ -169,13 +173,14 @@ class MCPTestCLI:
             print(f"❌ Error listing tools: {e}")
             return []
 
-    async def call_tool(self, tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
+    async def call_tool(self, tool_name: str, arguments: Dict[str, Any],raw_mode = False) -> Dict[str, Any]:
         """
         Call a specific tool with arguments.
 
         Args:
             tool_name: Name of the tool to call
             arguments: Arguments to pass to the tool
+            raw_mode: if True , return mcp server output only
 
         Returns:
             Tool execution result
@@ -185,15 +190,17 @@ class MCPTestCLI:
                 "name": tool_name,
                 "arguments": arguments
             })
+            if not raw_mode:
+                if "error" in response:
 
-            if "error" in response:
-                print(f"❌ Tool execution failed: {response['error']}")
-                return response
-
+                    print(f"❌ Tool execution failed: {response['error']}")
+                    print(f"work\n",tool_name,arguments,raw_mode,response)
+                    return response.get("result", {})
             return response.get("result", {})
 
         except Exception as e:
-            print(f"❌ Error calling tool: {e}")
+            if not raw_mode:
+                print(f"❌ Error calling tool: {e}")
             return {"error": str(e)}
 
     def print_tools_list(self, tools: List[Dict[str, Any]]):
@@ -284,14 +291,17 @@ class MCPTestCLI:
 
         print()
 
-    def print_tool_result(self, result: Dict[str, Any]):
+    def print_tool_result(self, result: Dict[str, Any],raw_mode = False):
         """Print formatted tool execution result."""
         if "error" in result:
-            print(f"❌ Error: {result['error']}")
+            if raw_mode:
+                print(result['error'])
+            else:
+                print(f"❌ Error: {result['error']}")
             return
-
-        print("\n✅ Tool Execution Result:")
-        print("=" * 30)
+        if not raw_mode:
+            print("\n✅ Tool Execution Result:")
+            print("=" * 30)
 
         # Handle different result formats
         content = result.get("content", [])
@@ -721,26 +731,33 @@ async def main():
     else:
         # Tool name with arguments - execute tool
         tool_name = sys.argv[1]
-        arguments = MCPTestCLI().parse_arguments(sys.argv[2:])
+        raw_output = False
+        arguments_list = sys.argv[2:]
 
+        # Check for --raw_output and remove it from arguments_list
+        for arg in arguments_list:
+            if arg == "--raw_output":
+                raw_output = True
+                arguments_list.remove(arg)
+                break
+        arguments = MCPTestCLI().parse_arguments(arguments_list)
         cli = MCPTestCLI()
 
-        if not await cli.start_server():
+        if not await cli.start_server(raw_mode=raw_output):
             sys.exit(1)
-
         try:
-            if not await cli.initialize_server():
+            if not await cli.initialize_server(raw_mode=raw_output):
                 sys.exit(1)
+            if not raw_output:
+                print(f"🚀 Executing tool: {tool_name}")
+                print(f"📝 Arguments: {json.dumps(arguments, indent=2)}")
+                print()
 
-            print(f"🚀 Executing tool: {tool_name}")
-            print(f"📝 Arguments: {json.dumps(arguments, indent=2)}")
-            print()
-
-            result = await cli.call_tool(tool_name, arguments)
-            cli.print_tool_result(result)
+            result = await cli.call_tool(tool_name, arguments,raw_mode=raw_output)
+            cli.print_tool_result(result,raw_mode=raw_output)
 
         finally:
-            await cli.stop_server()
+            await cli.stop_server(raw_mode=raw_output)
 
 
 if __name__ == "__main__":
