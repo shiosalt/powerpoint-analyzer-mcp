@@ -10,8 +10,8 @@ from dataclasses import dataclass, field
 class ServerConfig:
     """Server configuration settings."""
     
-    # Logging configuration
-    log_level: str = field(default_factory=lambda: os.getenv('POWERPOINT_MCP_LOG_LEVEL', 'INFO'))
+    # Logging configuration - default to WARNING for MCP to reduce stderr noise
+    log_level: str = field(default_factory=lambda: os.getenv('POWERPOINT_MCP_LOG_LEVEL', 'WARNING'))
     log_format: str = field(default='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     
     # Server configuration

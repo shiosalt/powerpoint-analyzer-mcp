@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Optional
 from pathlib import Path
 from contextlib import asynccontextmanager
 
-# Use the correct FastMCP 2.0 import
+# Import FastMCP
 from fastmcp import FastMCP
 from powerpoint_mcp_server.server import PowerPointMCPServer
 from powerpoint_mcp_server.config import get_config, get_config_manager
@@ -23,9 +23,10 @@ log_file = "powerpoint_mcp_server.log"
 file_handler = logging.FileHandler(log_file, mode='w', encoding='utf-8')
 file_handler.setLevel(logging.DEBUG)
 
-# Create console handler
+# For MCP servers, we should minimize stderr output to avoid [ERROR] logs in clients
+# Only log ERROR and CRITICAL to stderr, everything else goes to file only
 console_handler = logging.StreamHandler(sys.stderr)
-console_handler.setLevel(getattr(logging, config.log_level.upper(), logging.INFO))
+console_handler.setLevel(logging.ERROR)  # Only ERROR and CRITICAL to stderr
 
 # Create formatter
 formatter = logging.Formatter(config.log_format)
@@ -37,6 +38,11 @@ logging.basicConfig(
     level=logging.DEBUG,
     handlers=[file_handler, console_handler]
 )
+
+# Set all third-party loggers to ERROR level to minimize stderr output for MCP
+third_party_loggers = ['fastmcp', 'mcp', 'asyncio', 'urllib3', 'requests']
+for logger_name in third_party_loggers:
+    logging.getLogger(logger_name).setLevel(logging.ERROR)
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +74,6 @@ def get_powerpoint_server() -> PowerPointMCPServer:
 
 # Create FastMCP instance with lifespan
 mcp = FastMCP(config.server_name, lifespan=lifespan)
-
 @mcp.tool
 async def extract_powerpoint_content(file_path: str) -> str:
     """Extract complete structured content from a PowerPoint file.
@@ -980,14 +985,18 @@ def main():
     logger.info(f"Starting PowerPoint Analyzer MCP using FastMCP 2.0: {config.server_name} v{config.server_version}")
     logger.info(f"Log file: {log_file}")
 
-    # Enable debug logging for FastMCP
+    # Set FastMCP logging to ERROR level to reduce stderr output for MCP clients
     fastmcp_logger = logging.getLogger('fastmcp')
-    fastmcp_logger.setLevel(logging.DEBUG)
+    fastmcp_logger.setLevel(logging.ERROR)
+    
+    # Also set MCP SDK logger to ERROR level
+    mcp_logger = logging.getLogger('mcp')
+    mcp_logger.setLevel(logging.ERROR)
 
     logger.info("FastMCP 2.0 server configured with tools")
 
     try:
-        # Run the FastMCP server
+        # Run the FastMCP server (banner suppressed by fastmcp.configure(quiet=True))
         logger.info("Starting FastMCP 2.0 server...")
         mcp.run()
     except Exception as e:
