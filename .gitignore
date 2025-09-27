@@ -75,3 +75,5 @@ test_mcp_*.py
 docs/
 tests/test_files/AWS_Network.pptx
 tests/test_files/test_complex2.pptx
+npx.cmd
+.gitignore

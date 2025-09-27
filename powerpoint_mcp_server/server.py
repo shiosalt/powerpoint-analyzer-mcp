@@ -155,7 +155,7 @@ class PowerPointMCPServer:
                             },
                             "search_criteria": {
                                 "type": "object",
-                                "description": "Search criteria for filtering slides",
+                                "description": "Search criteria (title,content,layout,slide_numbers) for filtering slides.",
                                 "properties": {
                                     "title": {
                                         "type": "object",
@@ -179,12 +179,12 @@ class PowerPointMCPServer:
                             "return_fields": {
                                 "type": "array",
                                 "items": {"type": "string"},
-                                "description": "Fields to include in results",
+                                "description": "Fields to include in results.[slide_number,title,object_counts]",
                                 "default": ["slide_number", "title", "object_counts"]
                             },
                             "limit": {
                                 "type": "integer",
-                                "description": "Maximum number of results",
+                                "description": "Maximum number of results.default:50",
                                 "default": 50
                             }
                         },
@@ -221,7 +221,8 @@ class PowerPointMCPServer:
                             "output_format": {
                                 "type": "string",
                                 "enum": ["structured", "flat", "grouped_by_slide"],
-                                "default": "structured"
+                                "default": "structured",
+                                "description": "output format. one of [structured, flat, grouped_by_slide]"
                             },
                             "include_metadata": {
                                 "type": "boolean",
@@ -244,7 +245,7 @@ class PowerPointMCPServer:
                             "formatting_type": {
                                 "type": "string",
                                 "enum": ["bold", "italic", "underlined", "highlighted", "strikethrough", "hyperlinks", "font_sizes", "font_colors"],
-                                "description": "Type of formatting to extract"
+                                "description": "Type of formatting to extract. one of [bold, italic, underlined, highlighted, strikethrough, hyperlinks, font_sizes, font_colors]"
                             },
                             "slide_numbers": {
                                 "type": "array",
@@ -277,7 +278,8 @@ class PowerPointMCPServer:
                             "grouping": {
                                 "type": "string",
                                 "enum": ["by_slide", "by_formatting_type", "by_content_type", "by_color", "by_font_size", "none"],
-                                "default": "none"
+                                "default": "none",
+                                "description": "group by. one of [by_slide,by_formatting_type,by_content_type,by_color,by_font_size,none]"
                             }
                         },
                         "required": ["file_path"]
@@ -347,7 +349,8 @@ class PowerPointMCPServer:
                                     "analysis_depth": {
                                         "type": "string",
                                         "enum": ["basic", "detailed", "comprehensive"],
-                                        "default": "detailed"
+                                        "default": "detailed",
+                                        "description": "one of [basic,detailed,comprehensive]"
                                     }
                                 }
                             }
@@ -1250,7 +1253,7 @@ class PowerPointMCPServer:
         if isinstance(value, bool):
             return value
         if isinstance(value, str):
-            return value.lower() in ('true', '1', 'yes', 'on')
+            return (value.lower() in ('true', '1', 'yes', 'on'))
         if value is None:
             return False
         return bool(value)
@@ -1494,7 +1497,7 @@ class PowerPointMCPServer:
             },
             {
                 "name": "get_powerpoint_attributes",
-                "description": "Get specific attributes from PowerPoint slides",
+                "description": "Get specific attributes(title,sections,notes,text,tables,etc). more efficient than extract_powerpoint_content when you only need specific attributes.",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
@@ -1505,7 +1508,7 @@ class PowerPointMCPServer:
                         "attributes": {
                             "type": "array",
                             "items": {"type": "string"},
-                            "description": "List of attributes to extract"
+                            "description": "List of attributes to extract (title, subtitle, text, tables, images, layout, size, sections, notes, object_counts)"
                         }
                     },
                     "required": ["file_path", "attributes"]
