@@ -14,7 +14,7 @@ from typing import Dict, List, Any, Optional
 from dataclasses import dataclass, asdict
 from datetime import datetime
 
-from tests.mcp_integration_test_framework import MCPIntegrationTestSuite, TestResult
+from tests.mcp_integration_test_framework import MCPIntegrationTestSuite, MCPTestResult
 
 logger = logging.getLogger(__name__)
 
@@ -117,7 +117,7 @@ class TestExecutor:
             logger.error(f"Error during test execution: {e}")
             raise
 
-    async def _run_performance_tests(self, test_suite: MCPIntegrationTestSuite) -> List[TestResult]:
+    async def _run_performance_tests(self, test_suite: MCPIntegrationTestSuite) -> List[MCPTestResult]:
         """Run performance-focused tests."""
         performance_results = []
 
@@ -130,7 +130,7 @@ class TestExecutor:
                 "description": "Content extraction performance"
             },
             {
-                "tool": "extract_text_formatting",
+                "tool": "extract_formatted_text",
                 "args": {
                     "file_path": str(self.test_files_dir / "test_formatting_comprehensive.pptx"),
                     "formatting_type": "bold"
@@ -157,7 +157,7 @@ class TestExecutor:
             # Check if performance requirement is met
             performance_ok = response_time <= test_case["max_time"]
 
-            result = TestResult(
+            result = MCPTestResult(
                 tool_name=test_case["tool"],
                 parameters=test_case["args"],
                 success=success and performance_ok,
@@ -177,7 +177,7 @@ class TestExecutor:
         start_time: datetime,
         end_time: datetime,
         duration: float,
-        test_results: List[TestResult]
+        test_results: List[MCPTestResult]
     ) -> TestExecutionReport:
         """Generate comprehensive execution report."""
 
@@ -322,7 +322,7 @@ class TestExecutor:
 
         logger.info(f"Summary report saved: {summary_file}")
 
-    def generate_coverage_report(self, test_results: List[TestResult]) -> Dict[str, Any]:
+    def generate_coverage_report(self, test_results: List[MCPTestResult]) -> Dict[str, Any]:
         """Generate detailed test coverage report."""
         coverage = {
             "tools_coverage": {},
@@ -333,14 +333,9 @@ class TestExecutor:
 
         # Expected tools (based on our implementation)
         expected_tools = [
-            "extract_powerpoint_content",
-            "get_powerpoint_attributes",
-            "get_slide_info",
-            "extract_text_formatting",
+            "extract_formatted_text",
             "query_slides",
-            "extract_table_data",
-            "get_presentation_overview",
-            "analyze_text_formatting"
+            "extract_table_data"
         ]
 
         # Analyze tool coverage

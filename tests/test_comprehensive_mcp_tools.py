@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Dict, List, Any
 from unittest.mock import AsyncMock, MagicMock
 
-from tests.mcp_integration_test_framework import MCPIntegrationTestSuite, MCPTestClient, TestResult
+from tests.mcp_integration_test_framework import MCPIntegrationTestSuite, MCPTestClient, MCPTestResult
 
 logger = logging.getLogger(__name__)
 
@@ -29,113 +29,11 @@ class TestComprehensiveMCPTools:
         if not self.test_file.exists():
             pytest.skip("Test file not found. Run test_data_generator.py first.")
 
-    @pytest.mark.asyncio
-    async def test_extract_powerpoint_content_tool(self):
-        """Test extract_powerpoint_content with various parameters."""
-        test_suite = MCPIntegrationTestSuite()
-
-        try:
-            assert await test_suite.setup()
-
-            # Test basic content extraction
-            success, response_data, response_time = await test_suite.client.call_tool(
-                "extract_powerpoint_content",
-                {"file_path": str(self.test_file)}
-            )
-
-            assert success, f"Tool call failed: {response_data}"
-            assert "slides" in response_data
-            assert "metadata" in response_data
-            assert len(response_data["slides"]) > 0
-            assert response_time < 10.0  # Should complete within 10 seconds
-
-        finally:
-            await test_suite.teardown()
+    # Removed tests for deleted tools: extract_powerpoint_content, get_powerpoint_attributes, get_slide_info
 
     @pytest.mark.asyncio
-    async def test_get_powerpoint_attributes_tool(self):
-        """Test get_powerpoint_attributes with all valid attribute combinations."""
-        test_suite = MCPIntegrationTestSuite()
-
-        try:
-            assert await test_suite.setup()
-
-            # Test individual attributes
-            individual_attributes = ["title", "subtitle", "text_elements", "tables", "object_counts"]
-
-            for attribute in individual_attributes:
-                success, response_data, response_time = await test_suite.client.call_tool(
-                    "get_powerpoint_attributes",
-                    {
-                        "file_path": str(self.test_file),
-                        "attributes": [attribute]
-                    }
-                )
-
-                assert success, f"Failed to extract attribute {attribute}: {response_data}"
-                assert "slides" in response_data
-
-                # Check that only requested attribute is present (plus slide_number)
-                if response_data["slides"]:
-                    slide = response_data["slides"][0]
-                    assert attribute in slide or attribute == "text_elements"  # text_elements might be empty
-                    assert "slide_number" in slide
-
-            # Test multiple attributes
-            success, response_data, response_time = await test_suite.client.call_tool(
-                "get_powerpoint_attributes",
-                {
-                    "file_path": str(self.test_file),
-                    "attributes": ["title", "subtitle", "object_counts"]
-                }
-            )
-
-            assert success, f"Failed to extract multiple attributes: {response_data}"
-            assert "slides" in response_data
-
-        finally:
-            await test_suite.teardown()
-
-    @pytest.mark.asyncio
-    async def test_get_slide_info_tool(self):
-        """Test get_slide_info with valid slide numbers."""
-        test_suite = MCPIntegrationTestSuite()
-
-        try:
-            assert await test_suite.setup()
-
-            # Test first slide
-            success, response_data, response_time = await test_suite.client.call_tool(
-                "get_slide_info",
-                {
-                    "file_path": str(self.test_file),
-                    "slide_number": 1
-                }
-            )
-
-            assert success, f"Failed to get slide 1 info: {response_data}"
-            assert response_data["slide_number"] == 1
-            assert "title" in response_data
-            assert "text_elements" in response_data
-
-            # Test middle slide
-            success, response_data, response_time = await test_suite.client.call_tool(
-                "get_slide_info",
-                {
-                    "file_path": str(self.test_file),
-                    "slide_number": 3
-                }
-            )
-
-            assert success, f"Failed to get slide 3 info: {response_data}"
-            assert response_data["slide_number"] == 3
-
-        finally:
-            await test_suite.teardown()
-
-    @pytest.mark.asyncio
-    async def test_extract_text_formatting_tool_all_types(self):
-        """Test extract_text_formatting with all supported formatting types."""
+    async def test_extract_formatted_text_tool_all_types(self):
+        """Test extract_formatted_text with all supported formatting types."""
         test_suite = MCPIntegrationTestSuite()
 
         try:
@@ -148,7 +46,7 @@ class TestComprehensiveMCPTools:
 
             for formatting_type in formatting_types:
                 success, response_data, response_time = await test_suite.client.call_tool(
-                    "extract_text_formatting",
+                    "extract_formatted_text",
                     {
                         "file_path": str(self.test_file),
                         "formatting_type": formatting_type
@@ -185,8 +83,8 @@ class TestComprehensiveMCPTools:
             await test_suite.teardown()
 
     @pytest.mark.asyncio
-    async def test_extract_text_formatting_with_slide_filter(self):
-        """Test extract_text_formatting with slide number filtering."""
+    async def test_extract_formatted_text_with_slide_filter(self):
+        """Test extract_formatted_text with slide number filtering."""
         test_suite = MCPIntegrationTestSuite()
 
         try:
@@ -194,7 +92,7 @@ class TestComprehensiveMCPTools:
 
             # Test with specific slides
             success, response_data, response_time = await test_suite.client.call_tool(
-                "extract_text_formatting",
+                "extract_formatted_text",
                 {
                     "file_path": str(self.test_file),
                     "formatting_type": "bold",
@@ -262,50 +160,7 @@ class TestComprehensiveMCPTools:
         finally:
             await test_suite.teardown()
 
-    @pytest.mark.asyncio
-    async def test_get_presentation_overview_tool(self):
-        """Test get_presentation_overview with different analysis depths."""
-        test_suite = MCPIntegrationTestSuite()
-
-        try:
-            assert await test_suite.setup()
-
-            analysis_depths = ["basic", "detailed", "comprehensive"]
-
-            for depth in analysis_depths:
-                success, response_data, response_time = await test_suite.client.call_tool(
-                    "get_presentation_overview",
-                    {
-                        "file_path": str(self.test_file),
-                        "analysis_depth": depth
-                    }
-                )
-
-                assert success, f"Failed to get {depth} overview: {response_data}"
-
-                # Verify basic structure
-                assert isinstance(response_data, dict)
-
-        finally:
-            await test_suite.teardown()
-
-    @pytest.mark.asyncio
-    async def test_analyze_text_formatting_tool(self):
-        """Test analyze_text_formatting tool."""
-        test_suite = MCPIntegrationTestSuite()
-
-        try:
-            assert await test_suite.setup()
-
-            success, response_data, response_time = await test_suite.client.call_tool(
-                "analyze_text_formatting",
-                {"file_path": str(self.test_file)}
-            )
-
-            assert success, f"Failed to analyze text formatting: {response_data}"
-
-        finally:
-            await test_suite.teardown()
+    # Removed tests for deleted tools: get_presentation_overview, analyze_text_formatting
 
     @pytest.mark.asyncio
     async def test_error_conditions(self):
@@ -317,7 +172,7 @@ class TestComprehensiveMCPTools:
 
             # Test invalid formatting type
             success, response_data, response_time = await test_suite.client.call_tool(
-                "extract_text_formatting",
+                "extract_formatted_text",
                 {
                     "file_path": str(self.test_file),
                     "formatting_type": "invalid_type"
@@ -327,22 +182,13 @@ class TestComprehensiveMCPTools:
             # Should return error message, not crash
             assert "error" in response_data or "Invalid formatting_type" in str(response_data)
 
-            # Test invalid slide number
-            success, response_data, response_time = await test_suite.client.call_tool(
-                "get_slide_info",
-                {
-                    "file_path": str(self.test_file),
-                    "slide_number": 999
-                }
-            )
-
-            # Should handle gracefully
-            assert not success or "error" in response_data or "out of range" in str(response_data)
-
             # Test nonexistent file
             success, response_data, response_time = await test_suite.client.call_tool(
-                "extract_powerpoint_content",
-                {"file_path": "nonexistent_file.pptx"}
+                "extract_formatted_text",
+                {
+                    "file_path": "nonexistent_file.pptx",
+                    "formatting_type": "bold"
+                }
             )
 
             # Should return error
@@ -359,18 +205,9 @@ class TestComprehensiveMCPTools:
         try:
             assert await test_suite.setup()
 
-            # Test basic content extraction performance
-            success, response_data, response_time = await test_suite.client.call_tool(
-                "extract_powerpoint_content",
-                {"file_path": str(self.test_file)}
-            )
-
-            assert success
-            assert response_time < 10.0, f"Content extraction took too long: {response_time}s"
-
             # Test formatting extraction performance
             success, response_data, response_time = await test_suite.client.call_tool(
-                "extract_text_formatting",
+                "extract_formatted_text",
                 {
                     "file_path": str(self.test_file),
                     "formatting_type": "bold"
@@ -407,6 +244,183 @@ class TestComprehensiveMCPTools:
             assert "start_position" in segment
             assert isinstance(segment["start_position"], int)
 
+    @pytest.mark.asyncio
+    async def test_example_usage_query_slides(self):
+        """Test all Example Usage cases for query_slides tool."""
+        test_suite = MCPIntegrationTestSuite()
+
+        try:
+            assert await test_suite.setup()
+
+            # Example 1: Find slides with "Sales" in the title
+            # Note: Using actual file, so searching for common words like "Test" or "Slide"
+            success, response_data, response_time = await test_suite.client.call_tool(
+                "query_slides",
+                {
+                    "file_path": str(self.test_file),
+                    "search_criteria": {"title": {"contains": "Test"}}
+                }
+            )
+            assert success, f"Example 1 failed: {response_data}"
+            logger.info(f"Example 1 - Title contains 'Test': {len(response_data.get('results', []))} results")
+
+            # Example 2: Find slides with tables and specific layout
+            success, response_data, response_time = await test_suite.client.call_tool(
+                "query_slides",
+                {
+                    "file_path": str(self.test_file),
+                    "search_criteria": {
+                        "content": {"has_tables": True},
+                        "layout": {"type": "title_content"}
+                    }
+                }
+            )
+            assert success, f"Example 2 failed: {response_data}"
+            logger.info(f"Example 2 - Tables + layout: {len(response_data.get('results', []))} results")
+
+            # Example 3: Find specific slides with custom return fields
+            success, response_data, response_time = await test_suite.client.call_tool(
+                "query_slides",
+                {
+                    "file_path": str(self.test_file),
+                    "search_criteria": {"slide_numbers": [1, 3, 5]},
+                    "return_fields": ["slide_number", "title", "preview_text"]
+                }
+            )
+            assert success, f"Example 3 failed: {response_data}"
+            results = response_data.get('results', [])
+            logger.info(f"Example 3 - Specific slides: {len(results)} results")
+            # Verify return fields are present
+            if results:
+                for result in results:
+                    assert "slide_number" in result
+                    assert "title" in result
+                    assert "preview_text" in result
+
+            # Example 4: Complex search with multiple criteria
+            success, response_data, response_time = await test_suite.client.call_tool(
+                "query_slides",
+                {
+                    "file_path": str(self.test_file),
+                    "search_criteria": {
+                        "title": {"regex": r".*[Tt]est.*"},  # More flexible regex
+                        "content": {"has_tables": True, "has_images": False}
+                    },
+                    "limit": 10
+                }
+            )
+            assert success, f"Example 4 failed: {response_data}"
+            logger.info(f"Example 4 - Complex search: {len(response_data.get('results', []))} results")
+
+        finally:
+            await test_suite.teardown()
+
+    @pytest.mark.asyncio
+    async def test_example_usage_extract_table_data(self):
+        """Test all Example Usage cases for extract_table_data tool."""
+        test_suite = MCPIntegrationTestSuite()
+
+        try:
+            assert await test_suite.setup()
+
+            # Example 1: Basic table extraction from all slides
+            success, response_data, response_time = await test_suite.client.call_tool(
+                "extract_table_data",
+                {
+                    "file_path": str(self.test_file)
+                }
+            )
+            assert success, f"Example 1 failed: {response_data}"
+            logger.info(f"Example 1 - Basic extraction: {response_data.get('summary', {}).get('total_tables_found', 0)} tables found")
+
+            # Example 2: Extract tables from specific slides
+            success, response_data, response_time = await test_suite.client.call_tool(
+                "extract_table_data",
+                {
+                    "file_path": str(self.test_file),
+                    "slide_numbers": [1, 2]
+                }
+            )
+            assert success, f"Example 2 failed: {response_data}"
+            logger.info(f"Example 2 - Specific slides: {response_data.get('summary', {}).get('total_tables_found', 0)} tables found")
+
+            # Example 3: Extract tables with specific criteria
+            success, response_data, response_time = await test_suite.client.call_tool(
+                "extract_table_data",
+                {
+                    "file_path": str(self.test_file),
+                    "slide_numbers": [1, 2],
+                    "table_criteria": {"min_rows": 2, "header_contains": ["Name"]}
+                }
+            )
+            assert success, f"Example 3 failed: {response_data}"
+            logger.info(f"Example 3 - With criteria: {response_data.get('summary', {}).get('total_tables_found', 0)} tables found")
+
+            # Example 4: Extract specific columns with formatting from all slides
+            success, response_data, response_time = await test_suite.client.call_tool(
+                "extract_table_data",
+                {
+                    "file_path": str(self.test_file),
+                    "column_selection": {"specific_columns": ["Name", "Age"]},
+                    "formatting_detection": {"detect_bold": True, "detect_colors": True}
+                }
+            )
+            assert success, f"Example 4 failed: {response_data}"
+            logger.info(f"Example 4 - Column selection + formatting: {response_data.get('summary', {}).get('total_tables_found', 0)} tables found")
+
+        finally:
+            await test_suite.teardown()
+
+    @pytest.mark.asyncio
+    async def test_example_usage_extract_formatted_text(self):
+        """Test all Example Usage cases for extract_formatted_text tool."""
+        test_suite = MCPIntegrationTestSuite()
+
+        try:
+            assert await test_suite.setup()
+
+            # Example 1: Returns all bold text from all slides
+            success, response_data, response_time = await test_suite.client.call_tool(
+                "extract_formatted_text",
+                {
+                    "file_path": str(self.test_file),
+                    "formatting_type": "bold"
+                }
+            )
+            assert success, f"Example 1 failed: {response_data}"
+            summary = response_data.get('summary', {})
+            logger.info(f"Example 1 - Bold text: {summary.get('total_formatted_segments', 0)} segments found")
+
+            # Example 2: Returns hyperlinks from slides 1 and 2 only
+            success, response_data, response_time = await test_suite.client.call_tool(
+                "extract_formatted_text",
+                {
+                    "file_path": str(self.test_file),
+                    "formatting_type": "hyperlinks",
+                    "slide_numbers": [1, 2]
+                }
+            )
+            assert success, f"Example 2 failed: {response_data}"
+            summary = response_data.get('summary', {})
+            logger.info(f"Example 2 - Hyperlinks from slides 1,2: {summary.get('total_formatted_segments', 0)} segments found")
+
+            # Additional test: Test other formatting types mentioned in the documentation
+            formatting_types = ["italic", "underlined", "highlighted", "font_sizes", "font_colors"]
+            for formatting_type in formatting_types:
+                success, response_data, response_time = await test_suite.client.call_tool(
+                    "extract_formatted_text",
+                    {
+                        "file_path": str(self.test_file),
+                        "formatting_type": formatting_type
+                    }
+                )
+                assert success, f"Additional test for {formatting_type} failed: {response_data}"
+                summary = response_data.get('summary', {})
+                logger.info(f"Additional test - {formatting_type}: {summary.get('total_formatted_segments', 0)} segments found")
+
+        finally:
+            await test_suite.teardown()
+
 
 class TestMCPToolCoverage:
     """Test coverage analysis for MCP tools."""
@@ -424,14 +438,9 @@ class TestMCPToolCoverage:
 
             # Expected tools based on our implementation
             expected_tools = [
-                "extract_powerpoint_content",
-                "get_powerpoint_attributes",
-                "get_slide_info",
-                "extract_text_formatting",
+                "extract_formatted_text",
                 "query_slides",
-                "extract_table_data",
-                "get_presentation_overview",
-                "analyze_text_formatting"
+                "extract_table_data"
             ]
 
             # Verify all expected tools are available

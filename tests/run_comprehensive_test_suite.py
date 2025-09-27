@@ -212,7 +212,7 @@ class ComprehensiveTestSuiteRunner:
         """Validate bold text extraction against expected results."""
         try:
             success, response_data, response_time = await test_suite.client.call_tool(
-                "extract_text_formatting",
+                "extract_formatted_text",
                 {
                     "file_path": str(self.test_files_dir / "test_formatting_comprehensive.pptx"),
                     "formatting_type": "bold"
@@ -269,7 +269,7 @@ class ComprehensiveTestSuiteRunner:
         """Validate formatting extraction for a specific type."""
         try:
             success, response_data, response_time = await test_suite.client.call_tool(
-                "extract_text_formatting",
+                "extract_formatted_text",
                 {
                     "file_path": str(self.test_files_dir / "test_formatting_comprehensive.pptx"),
                     "formatting_type": formatting_type

@@ -262,165 +262,50 @@ class TestMCPServerIntegration:
         """Clean up after tests."""
         reset_global_cache()
     
-    @pytest.mark.asyncio
-    async def test_extract_powerpoint_content_tool(self):
-        """Test the extract_powerpoint_content MCP tool."""
-        # Mock the MCP call context
-        mock_request = MagicMock()
-        mock_request.params = MagicMock()
-        mock_request.params.arguments = {
-            "file_path": str(self.minimal_pptx)
-        }
-        
-        # Call the tool handler
-        result = await self.server._extract_powerpoint_content(mock_request.params.arguments)
-        
-        # Verify result structure
-        assert result is not None
-        assert hasattr(result, 'content')
-        
-        # Parse the JSON content
-        content_data = json.loads(result.content[0].text)
-        
-        assert 'slides' in content_data
-        assert 'metadata' in content_data
-        assert 'slide_size' in content_data
-        assert len(content_data['slides']) >= 1
-        
-        # Verify slide content
-        slide1 = content_data['slides'][0]
-        assert slide1['slide_number'] == 1
-        assert slide1['title'] == "Test Presentation Title"
-        
-        # Verify presentation metadata
-        metadata = content_data['metadata']
-        assert 'slide_count' in metadata
-        assert metadata['slide_count'] >= 1
-        
-        # Verify slide size info
-        slide_size = content_data['slide_size']
-        assert 'width_emu' in slide_size
-        assert 'height_emu' in slide_size
-    
-    @pytest.mark.asyncio
-    async def test_get_powerpoint_attributes_tool(self):
-        """Test the get_powerpoint_attributes MCP tool."""
-        mock_request = MagicMock()
-        mock_request.params = MagicMock()
-        mock_request.params.arguments = {
-            "file_path": str(self.complex_pptx),
-            "attributes": ["title", "tables", "object_counts"]
-        }
-        
-        result = await self.server._get_powerpoint_attributes(mock_request.params.arguments)
-        
-        assert result is not None
-        assert hasattr(result, 'content')
-        
-        content_data = json.loads(result.content[0].text)
-        
-        assert 'slides' in content_data
-        assert len(content_data['slides']) == 4
-        
-        # Verify filtered attributes
-        for slide in content_data['slides']:
-            assert 'title' in slide
-            assert 'object_counts' in slide
-            # Only slide 2 should have tables
-            if slide['slide_number'] == 2:
-                assert 'tables' in slide
-                assert len(slide['tables']) >= 1  # Should have at least one table
-        
-        # Verify that only requested attributes are present
-        slide1 = content_data['slides'][0]
-        expected_keys = {'slide_number', 'title', 'object_counts'}
-        actual_keys = set(slide1.keys())
-        # Allow for additional keys that might be included by default
-        assert expected_keys.issubset(actual_keys)
-    
-    @pytest.mark.asyncio
-    async def test_get_slide_info_tool(self):
-        """Test the get_slide_info MCP tool."""
-        mock_request = MagicMock()
-        mock_request.params = MagicMock()
-        mock_request.params.arguments = {
-            "file_path": str(self.minimal_pptx),
-            "slide_number": 1
-        }
-        
-        result = await self.server._get_slide_info(mock_request.params.arguments)
-        
-        assert result is not None
-        assert hasattr(result, 'content')
-        
-        content_data = json.loads(result.content[0].text)
-        
-        # The slide data is returned directly, not wrapped in a 'slide' key
-        assert content_data['slide_number'] == 1
-        assert content_data['title'] == "Test Presentation Title"
-        assert 'placeholders' in content_data
-        assert 'text_elements' in content_data
-        
-        # Verify slide structure
-        assert isinstance(content_data['placeholders'], list)
-        assert isinstance(content_data['text_elements'], list)
-        assert len(content_data['placeholders']) >= 1  # Should have at least title placeholder
+    # Removed tests for deleted tools: extract_powerpoint_content, get_powerpoint_attributes, get_slide_info
     
     @pytest.mark.asyncio
     async def test_mcp_error_handling(self):
         """Test MCP tool error handling."""
-        # Test with missing file - should raise McpError
+        # Test with missing file for remaining tools
         mock_request = MagicMock()
         mock_request.params = MagicMock()
         mock_request.params.arguments = {
-            "file_path": "nonexistent.pptx"
+            "file_path": "nonexistent.pptx",
+            "formatting_type": "bold"
         }
         
         with pytest.raises(Exception) as exc_info:
-            await self.server._extract_powerpoint_content(mock_request.params.arguments)
+            await self.server._extract_text_formatting(mock_request.params.arguments)
         
-        # Should be an McpError with appropriate message
+        # Should be an error with appropriate message
         error_message = str(exc_info.value)
         assert "file" in error_message.lower() or "not found" in error_message.lower() or "does not exist" in error_message.lower()
     
     @pytest.mark.asyncio
     async def test_mcp_tool_validation(self):
         """Test MCP tool parameter validation."""
-        # Test extract_powerpoint_content without file_path
+        # Test extract_formatted_text without file_path
         mock_request = MagicMock()
         mock_request.params = MagicMock()
         mock_request.params.arguments = {}
         
         with pytest.raises(Exception) as exc_info:
-            await self.server._extract_powerpoint_content(mock_request.params.arguments)
+            await self.server._extract_text_formatting(mock_request.params.arguments)
         
         error_message = str(exc_info.value)
         assert 'file_path' in error_message
         
-        # Test get_slide_info with invalid slide number
+        # Test query_slides with invalid criteria - this might not raise an exception
+        # as empty search criteria could be valid (return all slides)
         mock_request.params.arguments = {
             "file_path": str(self.minimal_pptx),
-            "slide_number": 999
+            "search_criteria": {}
         }
         
-        with pytest.raises(Exception) as exc_info:
-            await self.server._get_slide_info(mock_request.params.arguments)
-        
-        error_message = str(exc_info.value)
-        # Should fail due to slide number being out of range
-        assert "slide" in error_message.lower() or "index" in error_message.lower() or "range" in error_message.lower()
-        
-        # Test get_powerpoint_attributes without attributes
-        mock_request.params.arguments = {
-            "file_path": str(self.minimal_pptx),
-            "attributes": []
-        }
-        
-        with pytest.raises(Exception) as exc_info:
-            await self.server._get_powerpoint_attributes(mock_request.params.arguments)
-        
-        error_message = str(exc_info.value)
-        assert 'attributes' in error_message
+        # This should not raise an exception, just return results
+        result = await self.server._query_slides(mock_request.params.arguments)
+        assert result is not None
 
 
 class TestPerformanceIntegration:
@@ -575,119 +460,98 @@ class TestComprehensiveIntegration:
     
     @pytest.mark.asyncio
     async def test_full_presentation_extraction(self):
-        """Test extraction of complete presentation with all content types."""
-        mock_request = MagicMock()
-        mock_request.params = MagicMock()
-        mock_request.params.arguments = {
-            "file_path": str(self.complex_pptx)
-        }
-        
-        result = await self.server._extract_powerpoint_content(mock_request.params.arguments)
-        content_data = json.loads(result.content[0].text)
-        
-        # Verify presentation structure
-        assert 'slides' in content_data
-        assert 'metadata' in content_data
-        assert 'slide_size' in content_data
-        
-        metadata = content_data['metadata']
-        slides = content_data['slides']
-        
-        # Verify presentation metadata
-        assert 'slide_count' in metadata
-        assert metadata['slide_count'] == len(slides)
-        
-        # Verify each slide has required structure
-        for slide in slides:
-            assert 'slide_number' in slide
-            assert 'title' in slide
-            assert 'placeholders' in slide
-            assert 'text_elements' in slide
-            assert 'tables' in slide
-            assert 'object_counts' in slide
-            
-            # Verify object counts structure
-            object_counts = slide['object_counts']
-            expected_count_keys = ['text_boxes', 'tables', 'images', 'shapes']
-            for key in expected_count_keys:
-                assert key in object_counts
-                assert isinstance(object_counts[key], int)
-                assert object_counts[key] >= 0
-    
-    @pytest.mark.asyncio
-    async def test_attribute_filtering_comprehensive(self):
-        """Test comprehensive attribute filtering scenarios."""
-        test_cases = [
-            # Single attribute
-            (["title"], {"title"}),
-            (["tables"], {"tables"}),
-            (["object_counts"], {"object_counts"}),
-            
-            # Multiple attributes
-            (["title", "subtitle"], {"title", "subtitle"}),
-            (["title", "tables", "object_counts"], {"title", "tables", "object_counts"}),
-            
-            # All supported attributes
-            (["title", "subtitle", "text_elements", "tables", "images", "placeholders", "object_counts"], 
-             {"title", "subtitle", "text_elements", "tables", "images", "placeholders", "object_counts"}),
-        ]
-        
-        for attributes, expected_keys in test_cases:
-            mock_request = MagicMock()
-            mock_request.params = MagicMock()
-            mock_request.params.arguments = {
-                "file_path": str(self.complex_pptx),
-                "attributes": attributes
-            }
-            
-            result = await self.server._get_powerpoint_attributes(mock_request.params.arguments)
-            content_data = json.loads(result.content[0].text)
-            
-            # Verify filtered content
-            assert 'slides' in content_data
-            for slide in content_data['slides']:
-                # slide_number should always be present
-                expected_keys_with_slide_num = expected_keys | {"slide_number"}
-                actual_keys = set(slide.keys())
-                
-                # Check that all expected keys are present
-                assert expected_keys_with_slide_num.issubset(actual_keys), \
-                    f"Missing keys for attributes {attributes}: expected {expected_keys_with_slide_num}, got {actual_keys}"
-    
-    @pytest.mark.asyncio
-    async def test_slide_specific_extraction(self):
-        """Test extraction of specific slides."""
-        # Test slide 1 (title slide)
+        """Test extraction of formatted text from complete presentation."""
         mock_request = MagicMock()
         mock_request.params = MagicMock()
         mock_request.params.arguments = {
             "file_path": str(self.complex_pptx),
-            "slide_number": 1
+            "formatting_type": "bold"
         }
         
-        result = await self.server._get_slide_info(mock_request.params.arguments)
+        result = await self.server._extract_text_formatting(mock_request.params.arguments)
         content_data = json.loads(result.content[0].text)
         
-        # The slide data is returned directly
-        assert content_data['slide_number'] == 1
-        assert content_data['title'] == "Complex Test Presentation"
+        # Verify response structure
+        assert 'formatting_type' in content_data
+        assert 'summary' in content_data
+        assert 'results_by_slide' in content_data
         
-        # Test slide 2 (table slide)
-        mock_request.params.arguments['slide_number'] = 2
-        result = await self.server._get_slide_info(mock_request.params.arguments)
+        summary = content_data['summary']
+        results = content_data['results_by_slide']
+        
+        # Verify summary structure
+        assert 'total_slides_analyzed' in summary
+        assert 'slides_with_formatting' in summary
+        assert 'total_formatted_segments' in summary
+        
+        # Verify each slide result has required structure
+        for slide_result in results:
+            assert 'slide_number' in slide_result
+            assert 'complete_text' in slide_result
+            assert 'formatted_segments' in slide_result
+            assert 'format' in slide_result
+            assert slide_result['format'] == 'bold'
+    
+    @pytest.mark.asyncio
+    async def test_formatting_type_filtering_comprehensive(self):
+        """Test comprehensive formatting type filtering scenarios."""
+        formatting_types = ["bold", "italic", "underlined", "highlighted", "strikethrough", "hyperlinks"]
+        
+        for formatting_type in formatting_types:
+            mock_request = MagicMock()
+            mock_request.params = MagicMock()
+            mock_request.params.arguments = {
+                "file_path": str(self.complex_pptx),
+                "formatting_type": formatting_type
+            }
+            
+            result = await self.server._extract_text_formatting(mock_request.params.arguments)
+            content_data = json.loads(result.content[0].text)
+            
+            # Verify filtered content
+            assert 'formatting_type' in content_data
+            assert content_data['formatting_type'] == formatting_type
+            assert 'results_by_slide' in content_data
+            
+            for slide_result in content_data['results_by_slide']:
+                assert 'slide_number' in slide_result
+                assert 'formatted_segments' in slide_result
+                assert 'format' in slide_result
+                assert slide_result['format'] == formatting_type
+    
+    @pytest.mark.asyncio
+    async def test_slide_specific_extraction(self):
+        """Test extraction with specific slide numbers."""
+        # Test with specific slide numbers
+        mock_request = MagicMock()
+        mock_request.params = MagicMock()
+        mock_request.params.arguments = {
+            "file_path": str(self.complex_pptx),
+            "formatting_type": "bold",
+            "slide_numbers": [1, 2]
+        }
+        
+        result = await self.server._extract_text_formatting(mock_request.params.arguments)
         content_data = json.loads(result.content[0].text)
         
-        # The slide data is returned directly
-        assert content_data['slide_number'] == 2
-        assert len(content_data['tables']) >= 1  # Should have at least one table
+        # Verify only requested slides are included
+        assert 'results_by_slide' in content_data
+        slide_numbers = [slide['slide_number'] for slide in content_data['results_by_slide']]
+        for slide_num in slide_numbers:
+            assert slide_num in [1, 2], f"Unexpected slide number {slide_num} in filtered results"
         
-        # Verify table structure
-        table = content_data['tables'][0]
-        assert 'rows' in table
-        assert 'columns' in table
-        assert 'cells' in table
-        assert table['rows'] >= 2  # Header + data rows
-        assert table['columns'] >= 2  # At least 2 columns
+        # Test table extraction from specific slides
+        mock_request.params.arguments = {
+            "file_path": str(self.complex_pptx),
+            "slide_numbers": [2, 3]
+        }
+        
+        result = await self.server._extract_table_data(mock_request.params.arguments)
+        content_data = json.loads(result.content[0].text)
+        
+        # Verify response structure
+        assert 'summary' in content_data
+        assert 'extracted_tables' in content_data
     
     @pytest.mark.asyncio
     async def test_error_scenarios_comprehensive(self):
@@ -793,26 +657,26 @@ class TestComprehensiveIntegration:
         import asyncio
         import threading
         
-        async def make_request(file_path, slide_number):
+        async def make_request(file_path, formatting_type):
             """Make a single MCP request."""
             server = PowerPointMCPServer()
             mock_request = MagicMock()
             mock_request.params = MagicMock()
             mock_request.params.arguments = {
                 "file_path": str(file_path),
-                "slide_number": slide_number
+                "formatting_type": formatting_type
             }
             
-            result = await server._get_slide_info(mock_request.params.arguments)
+            result = await server._extract_text_formatting(mock_request.params.arguments)
             content_data = json.loads(result.content[0].text)
-            return content_data['slide_number']
+            return content_data['formatting_type']
         
         async def run_concurrent_requests():
             """Run multiple concurrent requests."""
             tasks = [
-                make_request(self.minimal_pptx, 1),
-                make_request(self.complex_pptx, 1),
-                make_request(self.complex_pptx, 2),
+                make_request(self.minimal_pptx, "bold"),
+                make_request(self.complex_pptx, "italic"),
+                make_request(self.complex_pptx, "hyperlinks"),
             ]
             
             results = await asyncio.gather(*tasks)
@@ -823,9 +687,9 @@ class TestComprehensiveIntegration:
         
         # Verify results
         assert len(results) == 3
-        assert results[0] == 1  # minimal.pptx slide 1
-        assert results[1] == 1  # complex.pptx slide 1
-        assert results[2] == 2  # complex.pptx slide 2
+        assert results[0] == "bold"
+        assert results[1] == "italic"
+        assert results[2] == "hyperlinks"
 
 
 class TestMCPProtocolCompliance:
@@ -852,14 +716,14 @@ class TestMCPProtocolCompliance:
         assert self.server is not None
         
         # Test that the server has the expected tool methods
-        assert hasattr(self.server, '_extract_powerpoint_content')
-        assert hasattr(self.server, '_get_powerpoint_attributes')
-        assert hasattr(self.server, '_get_slide_info')
+        assert hasattr(self.server, '_extract_text_formatting')
+        assert hasattr(self.server, '_query_slides')
+        assert hasattr(self.server, '_extract_table_data')
         
         # Test that methods are callable
-        assert callable(self.server._extract_powerpoint_content)
-        assert callable(self.server._get_powerpoint_attributes)
-        assert callable(self.server._get_slide_info)
+        assert callable(self.server._extract_text_formatting)
+        assert callable(self.server._query_slides)
+        assert callable(self.server._extract_table_data)
     
     @pytest.mark.asyncio
     async def test_response_format_compliance(self):
@@ -867,10 +731,11 @@ class TestMCPProtocolCompliance:
         mock_request = MagicMock()
         mock_request.params = MagicMock()
         mock_request.params.arguments = {
-            "file_path": str(self.minimal_pptx)
+            "file_path": str(self.minimal_pptx),
+            "formatting_type": "bold"
         }
         
-        result = await self.server._extract_powerpoint_content(mock_request.params.arguments)
+        result = await self.server._extract_text_formatting(mock_request.params.arguments)
         
         # Verify CallToolResult structure
         assert hasattr(result, 'content')
@@ -888,7 +753,7 @@ class TestMCPProtocolCompliance:
         assert isinstance(content_data, dict)
         
         # Should have proper structure
-        assert 'slides' in content_data and 'metadata' in content_data
+        assert 'formatting_type' in content_data and 'results_by_slide' in content_data
     
     @pytest.mark.asyncio
     async def test_error_response_format(self):
@@ -896,12 +761,13 @@ class TestMCPProtocolCompliance:
         mock_request = MagicMock()
         mock_request.params = MagicMock()
         mock_request.params.arguments = {
-            "file_path": "nonexistent.pptx"
+            "file_path": "nonexistent.pptx",
+            "formatting_type": "bold"
         }
         
         # Should raise McpError
         with pytest.raises(Exception) as exc_info:
-            await self.server._extract_powerpoint_content(mock_request.params.arguments)
+            await self.server._extract_text_formatting(mock_request.params.arguments)
         
         # Verify error structure
         error = exc_info.value
@@ -913,18 +779,17 @@ class TestMCPProtocolCompliance:
         """Test parameter validation for all tools."""
         # Test cases for each tool
         test_cases = [
-            # extract_powerpoint_content
+            # extract_formatted_text
             ({}, "file_path"),  # Missing file_path
             ({"file_path": ""}, "file_path"),  # Empty file_path
+            ({"file_path": str(self.minimal_pptx)}, "formatting_type"),  # Missing formatting_type
             
-            # get_powerpoint_attributes  
+            # query_slides  
             ({}, "file_path"),  # Missing file_path
-            ({"file_path": str(self.minimal_pptx)}, "attributes"),  # Missing attributes
-            ({"file_path": str(self.minimal_pptx), "attributes": []}, "attributes"),  # Empty attributes
+            ({"file_path": str(self.minimal_pptx)}, "search_criteria"),  # Missing search_criteria
             
-            # get_slide_info
+            # extract_table_data
             ({}, "file_path"),  # Missing file_path
-            ({"file_path": str(self.minimal_pptx)}, "slide_number"),  # Missing slide_number
         ]
         
         # Note: This is a structural test - actual validation happens in async methods

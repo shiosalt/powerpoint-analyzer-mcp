@@ -7,17 +7,11 @@ This tool enables outputting text written in bold and other structured informati
 
 ## Features
 
-- Extract structured content from PowerPoint (.pptx) files
-- Get specific attributes from slides (title, subtitle, text, tables, images, etc.)
-- Retrieve information for individual slides
-- Query slides with filtering criteria
-- Extract table data with formatting detection
 - **Text formatting detection**: Bold, italic, underline, strikethrough, highlighting, hyperlinks
 - **Font analysis**: Font sizes, colors, and styling information
-- Get presentation overview and analysis
-- Support for slide layouts, placeholders, and formatting information
+- **Slide querying**: Query slides with flexible filtering criteria
+- **Table data extraction**: Extract table data with formatting detection
 - **Testing suite** for formatting detection validation
-- **Debug tools** for troubleshooting formatting detection issues
 - Implementation using Python standard libraries (no external PowerPoint dependencies)
 - Direct XML parsing for processing
 - Built with FastMCP 2.0
@@ -154,22 +148,11 @@ python main.py
 
 ### Available Tools
 
-#### Core Content Extraction
-1. **extract_powerpoint_content**: Extract complete structured content from a PowerPoint file
-2. **get_powerpoint_attributes**: Get specific attributes from PowerPoint slides
-3. **get_slide_info**: Get information for a specific slide
-4. **query_slides**: Query slides with flexible filtering criteria
-5. **extract_table_data**: Extract table data with flexible selection and formatting detection
+This MCP server provides three core tools:
 
-#### Text Formatting Analysis
-7. **extract_formatted_text**: Extract text with specific formatting types (bold, italic, underline, strikethrough, highlight, hyperlinks)
-8. **get_formatting_summary**: Get summary of text formatting in the presentation
-9. **analyze_text_formatting**: Analyze text formatting patterns across slides with formatting detection
-
-#### Presentation Analysis
-10. **get_presentation_overview**: Get presentation overview and analysis
-11. **clear_cache**: Clear the cache
-12. **reload_file_content**: Reload file content by clearing cache and re-extracting
+1. **extract_formatted_text**: Extract text with specific formatting types (bold, italic, underline, strikethrough, highlight, hyperlinks, font sizes, font colors)
+2. **query_slides**: Query slides with flexible filtering criteria
+3. **extract_table_data**: Extract table data with flexible selection and formatting detection
 
 
 

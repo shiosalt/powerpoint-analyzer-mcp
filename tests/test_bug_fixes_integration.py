@@ -494,7 +494,7 @@ if __name__ == "__main__":
         
         # Test italic recognition
         italic_result = await mcp_client.call_tool(
-            "extract_text_formatting",
+            "extract_formatted_text",
             {
                 "file_path": TEST_FILE_PATH,
                 "formatting_type": "italic"
@@ -511,7 +511,7 @@ if __name__ == "__main__":
         
         # Test hyperlinks recognition
         hyperlinks_result = await mcp_client.call_tool(
-            "extract_text_formatting",
+            "extract_formatted_text",
             {
                 "file_path": TEST_FILE_PATH,
                 "formatting_type": "hyperlinks"
@@ -526,7 +526,7 @@ if __name__ == "__main__":
         
         # Test position accuracy for bold text
         bold_result = await mcp_client.call_tool(
-            "extract_text_formatting",
+            "extract_formatted_text",
             {
                 "file_path": TEST_FILE_PATH,
                 "formatting_type": "bold"
@@ -798,7 +798,7 @@ if __name__ == "__main__":
         for formatting_type in formatting_types:
             try:
                 result = await mcp_client.call_tool(
-                    "extract_text_formatting",
+                    "extract_formatted_text",
                     {
                         "file_path": TEST_FILE_PATH,
                         "formatting_type": formatting_type

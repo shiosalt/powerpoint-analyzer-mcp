@@ -109,8 +109,8 @@ async def test_analyze_text_formatting():
         logger.error(f"Traceback: {traceback.format_exc()}")
         return False
 
-async def test_extract_text_formatting():
-    """Test the extract_text_formatting functionality."""
+async def test_extract_formatted_text():
+    """Test the extract_formatted_text functionality."""
     
     # Test file path
     test_file = "tests/test_files/test_complex.pptx"
@@ -119,11 +119,11 @@ async def test_extract_text_formatting():
         # Create server instance
         server = PowerPointMCPServer()
         
-        # Test extract_text_formatting for different types
+        # Test extract_formatted_text for different types
         formatting_types = ["bold", "italic", "hyperlinks"]
         
         for formatting_type in formatting_types:
-            logger.info(f"Testing extract_text_formatting for {formatting_type}...")
+            logger.info(f"Testing extract_formatted_text for {formatting_type}...")
             
             arguments = {
                 "file_path": test_file,
@@ -164,7 +164,7 @@ async def test_extract_text_formatting():
         return True
         
     except Exception as e:
-        logger.error(f"❌ ERROR: Exception in extract_text_formatting test: {e}")
+        logger.error(f"❌ ERROR: Exception in extract_formatted_text test: {e}")
         import traceback
         logger.error(f"Traceback: {traceback.format_exc()}")
         return False
@@ -176,8 +176,8 @@ async def main():
     # Test analyze_text_formatting
     analyze_success = await test_analyze_text_formatting()
     
-    # Test extract_text_formatting
-    extract_success = await test_extract_text_formatting()
+    # Test extract_formatted_text
+    extract_success = await test_extract_formatted_text()
     
     if analyze_success and extract_success:
         logger.info("🎉 All tests completed successfully!")

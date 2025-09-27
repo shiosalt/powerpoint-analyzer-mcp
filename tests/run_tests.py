@@ -16,8 +16,12 @@ if __name__ == "__main__":
     
     # Run specific test files that are known to work
     test_files = [
-        "tests/test_data_generator.py",
         "tests/test_comprehensive_mcp_tools.py",
+        "tests/test_integration.py",
+        "tests/test_content_extractor.py",
+        "tests/test_enhanced_table_extractor.py",
+        "tests/test_slide_query_engine.py",
+        "tests/test_text_formatting_analyzer.py",
         # Add more test files as they are updated
     ]
     

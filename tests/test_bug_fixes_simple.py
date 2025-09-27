@@ -57,8 +57,8 @@ async def test_bug_fixes():
         
         print()
         
-        # Test 2: extract_text_formatting - test italic and hyperlinks
-        print("Test 2: extract_text_formatting - italic")
+        # Test 2: extract_formatted_text - test italic and hyperlinks
+        print("Test 2: extract_formatted_text - italic")
         result2 = await server._extract_text_formatting({
             "file_path": test_file,
             "formatting_type": "italic",
@@ -75,8 +75,8 @@ async def test_bug_fixes():
         
         print()
         
-        # Test 3: extract_text_formatting - test hyperlinks
-        print("Test 3: extract_text_formatting - hyperlinks")
+        # Test 3: extract_formatted_text - test hyperlinks
+        print("Test 3: extract_formatted_text - hyperlinks")
         result3 = await server._extract_text_formatting({
             "file_path": test_file,
             "formatting_type": "hyperlinks",
@@ -93,8 +93,8 @@ async def test_bug_fixes():
         
         print()
         
-        # Test 4: extract_text_formatting - test position accuracy
-        print("Test 4: extract_text_formatting - position accuracy")
+        # Test 4: extract_formatted_text - test position accuracy
+        print("Test 4: extract_formatted_text - position accuracy")
         result4 = await server._extract_text_formatting({
             "file_path": test_file,
             "formatting_type": "bold",

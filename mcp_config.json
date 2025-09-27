@@ -10,16 +10,9 @@
       },
       "disabled": false,
       "autoApprove": [
-        "extract_powerpoint_content",
-        "get_powerpoint_attributes",
-        "get_slide_info",
+        "extract_formatted_text",
         "query_slides",
-        "extract_table_data",
-        "analyze_text_formatting",
-        "filter_and_aggregate",
-        "get_presentation_overview",
-        "clear_cache",
-        "reload_file_content"
+        "extract_table_data"
       ]
     }
   }

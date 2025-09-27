@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class TestResult:
+class MCPTestResult:
     """Result of MCP tool test execution."""
     tool_name: str
     parameters: Dict[str, Any]
@@ -202,7 +202,7 @@ class MCPIntegrationTestSuite:
         except Exception as e:
             logger.error(f"Error during teardown: {e}")
 
-    async def test_all_tools(self) -> List[TestResult]:
+    async def test_all_tools(self) -> List[MCPTestResult]:
         """Test all MCP tools with various parameter combinations."""
         try:
             # Get available tools
@@ -234,7 +234,7 @@ class MCPIntegrationTestSuite:
                     tool_name, params['arguments']
                 )
 
-                result = TestResult(
+                result = MCPTestResult(
                     tool_name=tool_name,
                     parameters=params['arguments'],
                     success=success,
@@ -298,7 +298,7 @@ class MCPIntegrationTestSuite:
                 }
             ]
 
-        elif tool_name == "extract_text_formatting":
+        elif tool_name == "extract_formatted_text":
             return [
                 {
                     "description": "bold text extraction",
@@ -413,7 +413,7 @@ class MCPIntegrationTestSuite:
         """Test error handling with invalid parameters."""
         error_test_cases = [
             {
-                "tool_name": "extract_text_formatting",
+                "tool_name": "extract_formatted_text",
                 "arguments": {
                     "file_path": str(self.test_files_dir / "test_formatting_comprehensive.pptx"),
                     "formatting_type": "invalid_type"
@@ -445,7 +445,7 @@ class MCPIntegrationTestSuite:
             # For error conditions, we expect success=False or error in response
             expected_error = not success or "error" in response_data
 
-            result = TestResult(
+            result = MCPTestResult(
                 tool_name=test_case["tool_name"],
                 parameters=test_case["arguments"],
                 success=expected_error,  # Success means we got expected error
