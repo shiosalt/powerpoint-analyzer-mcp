@@ -154,6 +154,46 @@ This MCP server provides three core tools:
 2. **query_slides**: Query slides with flexible filtering criteria
 3. **extract_table_data**: Extract table data with flexible selection and formatting detection
 
+### Slide Selection with Python-Style Slicing
+
+All tools now support flexible slide selection using Python-style slicing notation for the `slide_numbers` parameter:
+
+#### Supported Formats
+
+- **All slides**: `None` or omit the parameter
+- **Single slide**: `3` or `"3"`
+- **Specific slides**: `[1, 5, 10]` or `"1,5,10"`
+- **First N slides**: `":10"` (slides 1-10)
+- **Slide range**: `"5:20"` (slides 5-20)
+- **From slide to end**: `"25:"` (slides 25 to end)
+- **With brackets**: `"[:10]"`, `"[5:20]"`, `"[25:]"` (optional)
+
+#### Examples
+
+```python
+# Extract tables from first 10 slides
+extract_table_data("presentation.pptx", slide_numbers=":10")
+
+# Extract bold text from slides 5-20
+extract_formatted_text("presentation.pptx", "bold", slide_numbers="5:20")
+
+# Query specific slides
+query_slides("presentation.pptx", {
+    "slide_numbers": "1,3,5,10",
+    "title": {"contains": "Summary"}
+})
+
+# Extract tables from slide 25 to end
+extract_table_data("presentation.pptx", slide_numbers="25:")
+```
+
+#### Benefits
+
+- **Efficient processing**: Process only the slides you need
+- **Intuitive syntax**: Familiar Python slicing notation
+- **Flexible selection**: Mix and match different selection methods
+- **Performance optimization**: Reduce processing time for large presentations
+
 
 
 ## Development
@@ -166,6 +206,13 @@ This MCP server provides three core tools:
 - Standard Python libraries (zipfile, xml.etree.ElementTree)
 
 ## Recent Updates
+
+### Version 2.1 - Python-Style Slide Selection
+- **Enhanced slide selection**: Added support for Python-style slicing notation (`:10`, `5:20`, `25:`, etc.)
+- **Flexible slide specification**: Support for single slides, ranges, comma-separated lists, and slicing
+- **Improved performance**: Process only the slides you need with efficient selection
+- **Backward compatibility**: Existing `[1, 5, 10]` format still supported
+- **Comprehensive validation**: Robust error handling for invalid slide specifications
 
 ### Version 2.0 - Advanced Text Formatting Detection
 - **Fixed critical formatting detection bug**: Bold, italic, underline, and strikethrough attributes now correctly detected

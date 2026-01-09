@@ -10,6 +10,7 @@ from enum import Enum
 
 from .content_extractor import ContentExtractor
 from ..utils.zip_extractor import ZipExtractor
+from ..utils.slide_selector import parse_slide_numbers
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +67,7 @@ class SlideQueryFilters:
     title: Optional[TitleFilter] = None
     content: Optional[ContentFilter] = None
     layout: Optional[LayoutFilter] = None
-    slide_numbers: Optional[List[int]] = None
+    slide_numbers: Optional[Any] = None  # Supports int, List[int], str (Python-style slicing)
     section: Optional[str] = None
     notes: Optional[NotesFilter] = None
 
@@ -223,11 +224,22 @@ class SlideQueryEngine:
         filtered_slides = slides.copy()
         
         # Apply slide number filter
-        if filters.slide_numbers:
-            filtered_slides = [
-                slide for slide in filtered_slides 
-                if slide['slide_number'] in filters.slide_numbers
-            ]
+        if filters.slide_numbers is not None:
+            # Get total slides count for parsing
+            total_slides = len(slides)
+            
+            # Parse slide numbers using the new utility
+            try:
+                resolved_slide_numbers = parse_slide_numbers(filters.slide_numbers, total_slides)
+                filtered_slides = [
+                    slide for slide in filtered_slides 
+                    if slide['slide_number'] in resolved_slide_numbers
+                ]
+                logger.info(f"Applied slide number filter: {len(resolved_slide_numbers)} slides specified, {len(filtered_slides)} slides matched")
+            except ValueError as e:
+                logger.error(f"Invalid slide_numbers specification: {e}")
+                # Return empty results for invalid slide specifications
+                return []
         
         # Apply title filters
         if filters.title:
@@ -700,12 +712,34 @@ class SlideQueryEngine:
                     validation_result['errors'].append("object_count_min cannot be greater than object_count_max")
                     validation_result['is_valid'] = False
             
-            # Validate slide numbers
-            if filters.slide_numbers:
-                for slide_num in filters.slide_numbers:
-                    if not isinstance(slide_num, int) or slide_num < 1:
-                        validation_result['errors'].append(f"Invalid slide number: {slide_num}. Slide numbers must be positive integers")
+            # Validate slide numbers - now supports multiple formats
+            if filters.slide_numbers is not None:
+                try:
+                    # Try to parse the slide numbers to validate format
+                    # We'll use a dummy total_slides value for validation
+                    # The actual parsing will happen during filtering with real total_slides
+                    if isinstance(filters.slide_numbers, (int, str)):
+                        # For validation, we just check if it's a reasonable format
+                        if isinstance(filters.slide_numbers, int) and filters.slide_numbers < 1:
+                            validation_result['errors'].append(f"Invalid slide number: {filters.slide_numbers}. Slide numbers must be positive integers")
+                            validation_result['is_valid'] = False
+                        elif isinstance(filters.slide_numbers, str):
+                            # Basic validation for string format
+                            if not filters.slide_numbers.strip():
+                                validation_result['errors'].append("slide_numbers string cannot be empty")
+                                validation_result['is_valid'] = False
+                    elif isinstance(filters.slide_numbers, list):
+                        # Validate list format (existing behavior)
+                        for slide_num in filters.slide_numbers:
+                            if not isinstance(slide_num, int) or slide_num < 1:
+                                validation_result['errors'].append(f"Invalid slide number: {slide_num}. Slide numbers must be positive integers")
+                                validation_result['is_valid'] = False
+                    else:
+                        validation_result['errors'].append(f"Invalid slide_numbers type: {type(filters.slide_numbers)}. Must be int, str, or List[int]")
                         validation_result['is_valid'] = False
+                except Exception as e:
+                    validation_result['errors'].append(f"Error validating slide_numbers: {str(e)}")
+                    validation_result['is_valid'] = False
             
             # Validate layout filters
             if filters.layout:
@@ -798,17 +832,28 @@ class SlideQueryEngine:
                 if not notes_validation['is_valid']:
                     validation_result['is_valid'] = False
             
-            # Validate slide_numbers field
+            # Validate slide_numbers field - now supports multiple formats
             if 'slide_numbers' in criteria_dict:
                 slide_numbers = criteria_dict['slide_numbers']
-                if not isinstance(slide_numbers, list):
-                    validation_result['errors'].append("slide_numbers must be a list")
-                    validation_result['is_valid'] = False
-                else:
+                if isinstance(slide_numbers, list):
+                    # Validate list format (existing behavior)
                     for i, slide_num in enumerate(slide_numbers):
                         if not isinstance(slide_num, int) or slide_num < 1:
                             validation_result['errors'].append(f"slide_numbers[{i}] must be a positive integer, got: {slide_num}")
                             validation_result['is_valid'] = False
+                elif isinstance(slide_numbers, int):
+                    # Validate single integer
+                    if slide_numbers < 1:
+                        validation_result['errors'].append(f"slide_numbers must be a positive integer, got: {slide_numbers}")
+                        validation_result['is_valid'] = False
+                elif isinstance(slide_numbers, str):
+                    # Validate string format (basic check)
+                    if not slide_numbers.strip():
+                        validation_result['errors'].append("slide_numbers string cannot be empty")
+                        validation_result['is_valid'] = False
+                else:
+                    validation_result['errors'].append(f"slide_numbers must be int, str, or List[int], got: {type(slide_numbers)}")
+                    validation_result['is_valid'] = False
             
             # Validate section field
             if 'section' in criteria_dict:

@@ -31,6 +31,7 @@ from .core.presentation_analyzer import PresentationAnalyzer, AnalysisDepth
 from .tools.tool_help import get_tool_help
 from .utils.file_validator import FileValidator
 from .utils.zip_extractor import ZipExtractor
+from .utils.slide_selector import parse_slide_numbers
 from .config import get_config, get_config_manager
 
 logger = logging.getLogger(__name__)
@@ -66,21 +67,36 @@ class PowerPointMCPServer:
             logger.error(f"Initialization traceback: {traceback.format_exc()}")
             raise
 
-    def _resolve_slide_numbers(self, file_path: str, slide_numbers: Optional[List[int]]) -> List[int]:
+    def _resolve_slide_numbers(self, file_path: str, slide_numbers: Any) -> List[int]:
         """
-        Resolve slide numbers to a concrete list.
-        If slide_numbers is None or empty, returns all slide numbers.
+        Resolve slide numbers to a concrete list with support for Python-style slicing.
+        
+        Args:
+            file_path: Path to the PowerPoint file
+            slide_numbers: Slide specification in various formats:
+                - None: All slides
+                - int: Single slide (e.g., 3)
+                - List[int]: Specific slides (e.g., [1, 5, 10])
+                - str: Python-style slicing:
+                    - ":100" or "[:100]": First 100 slides (1-100)
+                    - "5:20" or "[5:20]": Slides 5-20
+                    - "25:" or "[25:]": Slides 25 to end
+                    - "3" or "[3]": Single slide 3
+                    - "1,5,10" or "[1,5,10]": Specific slides 1, 5, 10
+        
+        Returns:
+            List[int]: Resolved slide numbers (1-based indexing)
         """
-        if slide_numbers:
-            return slide_numbers
-
-        # Get all slide numbers
+        # Get total slides count
         with ZipExtractor(file_path) as extractor:
             slide_files_dict = extractor.get_slide_xml_files()
             total_slides = len(slide_files_dict)
-            all_slides = list(range(1, total_slides + 1))
-            logger.info(f"No slide numbers specified, analyzing all {total_slides} slides")
-            return all_slides
+        
+        # Parse slide numbers using the new utility
+        resolved_slides = parse_slide_numbers(slide_numbers, total_slides)
+        
+        logger.info(f"Resolved slide specification to {len(resolved_slides)} slides: {resolved_slides[:10]}{'...' if len(resolved_slides) > 10 else ''}")
+        return resolved_slides
 
     def _setup_handlers(self):
         """Set up MCP request handlers."""
@@ -140,7 +156,7 @@ class PowerPointMCPServer:
                                 "description": "Slide number (1-based)"
                             }
                         },
-                        "required": ["file_path", "slide_number"]
+                        "required": ["file_path"]
                     }
                 ),
                 Tool(
@@ -229,7 +245,7 @@ class PowerPointMCPServer:
                                 "default": True
                             }
                         },
-                        "required": ["file_path", "slide_numbers"]
+                        "required": ["file_path"]
                     }
                 ),
                 Tool(
