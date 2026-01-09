@@ -82,9 +82,8 @@ class FormattingExtractor:
             results_by_slide = []
             
             with ZipExtractor(file_path) as extractor:
-                # Get slide XML files
-                slide_files_dict = extractor.get_slide_xml_files()
-                slide_files = sorted(slide_files_dict.keys())
+                # Get slide XML files sorted numerically
+                slide_files = extractor.get_slide_xml_files_sorted()
                 
                 # Determine which slides to analyze
                 if slide_numbers is None:

@@ -193,8 +193,8 @@ class PresentationAnalyzer:
                     presentation_data['metadata'] = self.content_extractor.extract_presentation_metadata(presentation_xml)
                     presentation_data['sections'] = self.content_extractor.extract_section_information(presentation_xml)
 
-                # Get slide data
-                slide_files = extractor.get_slide_xml_files()
+                # Get slide data sorted numerically
+                slide_files = extractor.get_slide_xml_files_sorted()
 
                 for i, slide_file in enumerate(slide_files, 1):
                     slide_xml = extractor.read_xml_content(slide_file)

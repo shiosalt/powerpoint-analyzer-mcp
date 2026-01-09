@@ -141,9 +141,8 @@ class EnhancedTableExtractor:
             slides_with_tables = 0
 
             with ZipExtractor(file_path) as extractor:
-                # Get slide XML files
-                slide_files_dict = extractor.get_slide_xml_files()
-                slide_files = sorted(slide_files_dict.keys())
+                # Get slide XML files sorted numerically
+                slide_files = extractor.get_slide_xml_files_sorted()
                 total_slides = len(slide_files)
 
                 logger.info(f"Total slides in presentation: {total_slides}")

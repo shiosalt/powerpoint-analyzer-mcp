@@ -157,6 +157,23 @@ class ZipExtractor:
         
         return slide_files
     
+    def get_slide_xml_files_sorted(self) -> List[str]:
+        """
+        Get slide XML file paths sorted numerically by slide number.
+        
+        Returns:
+            List of slide XML paths sorted by slide number (slide1.xml, slide2.xml, ...)
+        """
+        slide_files_dict = self.get_slide_xml_files()
+        
+        def extract_slide_number(slide_path):
+            """Extract slide number from path like 'ppt/slides/slide1.xml'"""
+            import re
+            match = re.search(r'slide(\d+)\.xml$', slide_path)
+            return int(match.group(1)) if match else 0
+        
+        return sorted(slide_files_dict.keys(), key=extract_slide_number)
+    
     def get_slide_layout_xml_files(self) -> Dict[str, str]:
         """
         Get mapping of slide layout XML files.

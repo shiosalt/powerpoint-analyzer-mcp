@@ -181,9 +181,12 @@ class TextFormattingAnalyzer:
                     slide_id_mapping = {}
                     slide_files_dict_for_sections = extractor.get_slide_xml_files()
                     
+                    # Sort slide files numerically for sections
+                    slide_files_for_sections = extractor.get_slide_xml_files_sorted()
+                    
                     # Type check to prevent the error
                     if isinstance(slide_files_dict_for_sections, dict):
-                        for i, slide_file in enumerate(sorted(slide_files_dict_for_sections.keys()), 1):
+                        for i, slide_file in enumerate(slide_files_for_sections, 1):
                             # Extract slide ID from presentation.xml if needed
                             slide_id_mapping[f"slide{i}"] = i
                         slide_to_section = self.content_extractor.map_slides_to_sections(sections, slide_id_mapping)
@@ -191,7 +194,7 @@ class TextFormattingAnalyzer:
                         logger.warning(f"Expected dict from get_slide_xml_files() for sections, got {type(slide_files_dict_for_sections)}")
                         slide_to_section = {}
                 
-                # Get slide XML files
+                # Get slide XML files sorted numerically
                 slide_files_dict = extractor.get_slide_xml_files()
                 
                 # Type check to prevent the error
@@ -199,7 +202,7 @@ class TextFormattingAnalyzer:
                     logger.error(f"Expected dict from get_slide_xml_files(), got {type(slide_files_dict)}: {slide_files_dict}")
                     return []
                 
-                slide_files = sorted(slide_files_dict.keys())
+                slide_files = extractor.get_slide_xml_files_sorted()
                 
                 slides = []
                 for i, slide_file in enumerate(slide_files, 1):

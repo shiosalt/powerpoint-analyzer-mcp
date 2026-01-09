@@ -567,8 +567,8 @@ class PowerPointMCPServer:
                     logger.debug(f"Extracted {len(sections)} sections: {sections}")
                     result['sections'] = sections
 
-                # Get slide XML files
-                slide_files = extractor.get_slide_xml_files()
+                # Get slide XML files sorted numerically
+                slide_files = extractor.get_slide_xml_files_sorted()
 
                 for i, slide_file in enumerate(slide_files, 1):
                     slide_xml = extractor.read_xml_content(slide_file)
