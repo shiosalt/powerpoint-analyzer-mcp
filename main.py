@@ -6,7 +6,7 @@ import json
 import logging
 import sys
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 from pathlib import Path
 from contextlib import asynccontextmanager
 
@@ -114,7 +114,7 @@ async def query_slides(file_path: str, search_criteria: Dict[str, Any], return_f
                     "regex": "str",           # Notes match this regex
                     "is_empty": bool          # Notes are empty (true/false)
                 },
-                "slide_numbers": [int],       # Specific slide numbers to include (1-based)
+                "slide_numbers": "Specific slide numbers to include (1-based). Supports multiple formats: int (single slide), List[int] (specific slides), or str (Python-style slicing like ':100', '5:20', '25:', '1,5,10')",
                 "section": "str"              # Section name to filter by
             }
 
@@ -251,16 +251,24 @@ async def query_slides(file_path: str, search_criteria: Dict[str, Any], return_f
         }, indent=2)
 
 @mcp.tool
-async def extract_table_data(file_path: str, slide_numbers: Optional[List[int]] = None, table_criteria: Optional[Dict[str, Any]] = None,
+async def extract_table_data(file_path: str, slide_numbers: Optional[Union[int, str, List[int]]] = None, table_criteria: Optional[Dict[str, Any]] = None,
                       column_selection: Optional[Dict[str, Any]] = None, formatting_detection: Optional[Dict[str, Any]] = None,
                       output_format: str = "structured", include_metadata: bool = True) -> str:
     """Extract table data with flexible selection and formatting detection.
 
     Args:
         file_path: Path to the PowerPoint file (.pptx)
-        slide_numbers: Slide numbers to extract tables from (1-based indexing).
-                       If not provided or None, analyzes all slides in the presentation.
-                       Example: [1, 3, 5] to analyze only slides 1, 3, and 5
+        slide_numbers: Optional. Slide numbers to extract tables from (1-based indexing).
+                       Supports multiple formats:
+                       - None: All slides
+                       - int: Single slide (e.g., 3)
+                       - List[int]: Specific slides (e.g., [1, 5, 10])
+                       - str: Python-style slicing:
+                         - ":100" or "[:100]": First 100 slides (1-100)
+                         - "5:20" or "[5:20]": Slides 5-20
+                         - "25:" or "[25:]": Slides 25 to end
+                         - "3" or "[3]": Single slide 3
+                         - "1,5,10" or "[1,5,10]": Specific slides 1, 5, 10
 
         table_criteria: Criteria for selecting tables (optional). Dictionary with keys:
             - min_rows: int - Minimum number of rows required
@@ -354,8 +362,12 @@ async def extract_table_data(file_path: str, slide_numbers: Optional[List[int]] 
         # Basic table extraction from all slides
         extract_table_data("presentation.pptx")
 
-        # Extract tables from specific slides
-        extract_table_data("presentation.pptx", slide_numbers=[1, 2])
+        # Extract specific columns from all slides
+        extract_table_data("presentation.pptx",
+                          column_selection={"specific_columns": ["Name", "Age"]})
+
+        # Extract tables from first 10 slides
+        extract_table_data("presentation.pptx", slide_numbers=":10")
 
         # Extract tables with specific criteria
         extract_table_data("presentation.pptx", slide_numbers=[1, 2],
@@ -404,7 +416,7 @@ async def extract_table_data(file_path: str, slide_numbers: Optional[List[int]] 
         }, indent=2)
 
 @mcp.tool
-async def extract_formatted_text(file_path: str, formatting_type: str, slide_numbers: Optional[List[int]] = None) -> str:
+async def extract_formatted_text(file_path: str, formatting_type: str, slide_numbers: Optional[Union[int, str, List[int]]] = None) -> str:
     """Extract text with specific formatting attributes from PowerPoint slides.
 
     This tool provides a generalized interface for extracting various types of text formatting
@@ -425,9 +437,17 @@ async def extract_formatted_text(file_path: str, formatting_type: str, slide_num
             - "font_sizes": Extract text segments with their font size information
             - "font_colors": Extract text segments with their color information (hex format)
 
-        slide_numbers: Optional list of specific slide numbers to analyze (1-based indexing).
-                      If not provided, analyzes all slides in the presentation.
-                      Example: [1, 3, 5] to analyze only slides 1, 3, and 5
+        slide_numbers: Optional slide numbers to analyze (1-based indexing).
+                      Supports multiple formats:
+                      - None: All slides
+                      - int: Single slide (e.g., 3)
+                      - List[int]: Specific slides (e.g., [1, 5, 10])
+                      - str: Python-style slicing:
+                        - ":100" or "[:100]": First 100 slides (1-100)
+                        - "5:20" or "[5:20]": Slides 5-20
+                        - "25:" or "[25:]": Slides 25 to end
+                        - "3" or "[3]": Single slide 3
+                        - "1,5,10" or "[1,5,10]": Specific slides 1, 5, 10
 
     Returns:
         JSON string with the following structure:
