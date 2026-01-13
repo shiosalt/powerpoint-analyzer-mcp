@@ -137,7 +137,7 @@ class ToolHelpSystem:
                         "type": "integer",
                         "required": False,
                         "description": "Maximum number of results to return",
-                        "default": 50,
+                        "default": 1000,
                         "minimum": 1
                     }
                 },

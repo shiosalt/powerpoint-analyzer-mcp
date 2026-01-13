@@ -101,7 +101,7 @@ class SlideQueryEngine:
         file_path: str,
         filters: SlideQueryFilters,
         return_fields: List[str] = None,
-        limit: int = 50
+        limit: int = 1000
     ) -> List[SlideQueryResult]:
         """
         Query slides based on flexible filtering criteria.

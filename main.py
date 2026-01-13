@@ -79,7 +79,7 @@ async def query_slides(
     file_path: Annotated[str, "Path to the PowerPoint file (.pptx). Must be a valid PowerPoint file. Example: 'C:\\\\temp\\\\presentation.pptx' or '/path/to/slides.pptx'"],
     search_criteria: Annotated[Dict[str, Any], "Dictionary containing search and filter criteria. Supports title filtering (contains, starts_with, ends_with, regex, one_of), content filtering (contains_text, has_tables, has_charts, has_images, object_count), layout filtering (type, name), notes filtering (contains, regex, is_empty), slide_numbers (int, List[int], or Python-style slicing string), and section filtering"],
     return_fields: Annotated[Optional[List[str]], "List of fields to include in results. Valid values: 'slide_number', 'title', 'subtitle', 'layout_name', 'layout_type', 'object_counts', 'preview_text', 'table_info', 'full_content'. Default: ['slide_number', 'title', 'object_counts']"] = None,
-    limit: Annotated[int, "Maximum number of results to return (1-1000, default: 50)"] = 50
+    limit: Annotated[int, "Maximum number of results to return (1-1000, default: 1000)"] = 1000
 ) -> str:
     """Query slides with flexible filtering criteria.
 
@@ -135,7 +135,7 @@ async def query_slides(
             - "full_content": Complete slide content
             Default: ["slide_number", "title", "object_counts"]
 
-        limit: Maximum number of results to return (1-1000, default: 50)
+        limit: Maximum number of results to return (1-1000, default: 1000)
 
     Returns:
         JSON string with the following structure:

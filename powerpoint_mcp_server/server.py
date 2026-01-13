@@ -200,8 +200,8 @@ class PowerPointMCPServer:
                             },
                             "limit": {
                                 "type": "integer",
-                                "description": "Maximum number of results.default:50",
-                                "default": 50
+                                "description": "Maximum number of results.default:1000",
+                                "default": 1000
                             }
                         },
                         "required": ["file_path", "search_criteria"]
@@ -708,7 +708,7 @@ class PowerPointMCPServer:
             file_path = arguments.get("file_path")
             search_criteria = arguments.get("search_criteria", {})
             return_fields = arguments.get("return_fields", ["slide_number", "title", "object_counts"])
-            limit = arguments.get("limit", 50)
+            limit = arguments.get("limit", 1000)
 
             if not file_path:
                 raise ValueError("file_path is required")

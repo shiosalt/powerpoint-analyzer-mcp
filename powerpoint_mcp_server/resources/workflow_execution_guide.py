@@ -572,7 +572,7 @@ WORKFLOW_EXECUTION_GUIDE = {
             ],
             "parameter_optimization": {
                 "query_slides": {
-                    "limit": "Set reasonable limit (default 50)",
+                    "limit": "Set reasonable limit (default 1000)",
                     "return_details": "Use 'basic' unless detailed info needed"
                 },
                 "extract_table_data": {
