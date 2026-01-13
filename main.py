@@ -6,7 +6,7 @@ import json
 import logging
 import sys
 import os
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, Annotated
 from pathlib import Path
 from contextlib import asynccontextmanager
 
@@ -74,8 +74,13 @@ def get_powerpoint_server() -> PowerPointMCPServer:
 
 # Create FastMCP instance with lifespan
 mcp = FastMCP(config.server_name, lifespan=lifespan)
-@mcp.tool
-async def query_slides(file_path: str, search_criteria: Dict[str, Any], return_fields: Optional[List[str]] = None, limit: int = 50) -> str:
+@mcp.tool(description="Query slides with flexible filtering criteria. Provides powerful slide filtering and search capabilities for PowerPoint presentations with complex search criteria including title matching, content analysis, layout filtering, and slide number selection.")
+async def query_slides(
+    file_path: Annotated[str, "Path to the PowerPoint file (.pptx). Must be a valid PowerPoint file. Example: 'presentation.pptx' or '/path/to/slides.pptx'"],
+    search_criteria: Annotated[Dict[str, Any], "Dictionary containing search and filter criteria. Supports title filtering (contains, starts_with, ends_with, regex, one_of), content filtering (contains_text, has_tables, has_charts, has_images, object_count), layout filtering (type, name), notes filtering (contains, regex, is_empty), slide_numbers (int, List[int], or str slicing), and section filtering"],
+    return_fields: Annotated[Optional[List[str]], "List of fields to include in results. Valid values: 'slide_number', 'title', 'subtitle', 'layout_name', 'layout_type', 'object_counts', 'preview_text', 'table_info', 'full_content'. Default: ['slide_number', 'title', 'object_counts']"] = None,
+    limit: Annotated[int, "Maximum number of results to return (1-1000, default: 50)"] = 50
+) -> str:
     """Query slides with flexible filtering criteria.
 
     This tool provides powerful slide filtering and search capabilities for PowerPoint presentations.
@@ -84,7 +89,7 @@ async def query_slides(file_path: str, search_criteria: Dict[str, Any], return_f
 
     Args:
         file_path: Path to the PowerPoint file (.pptx). Must be a valid PowerPoint file.
-                  Example: "presentation.pptx" or "/path/to/slides.pptx"
+                  Example: "C:¥¥temp¥¥presentation.pptx" or "/path/to/slides.pptx"
 
         search_criteria: Dictionary containing search and filter criteria. Structure:
             {
@@ -196,21 +201,21 @@ async def query_slides(file_path: str, search_criteria: Dict[str, Any], return_f
 
     Example Usage:
         # Find slides with "Sales" in the title
-        query_slides("presentation.pptx", {"title": {"contains": "Sales"}})
+        query_slides("C:¥¥temp¥¥presentation.pptx", {"title": {"contains": "Sales"}})
 
         # Find slides with tables and specific layout
-        query_slides("presentation.pptx", {
+        query_slides("C:¥¥temp¥¥presentation.pptx", {
             "content": {"has_tables": true},
             "layout": {"type": "title_content"}
         })
 
         # Find specific slides with custom return fields
-        query_slides("presentation.pptx", 
+        query_slides("C:¥¥temp¥¥presentation.pptx", 
                     {"slide_numbers": [1, 3, 5]},
                     ["slide_number", "title", "preview_text"])
 
         # Complex search with multiple criteria
-        query_slides("presentation.pptx", {
+        query_slides("C:¥¥temp¥¥presentation.pptx", {
             "title": {"regex": "Q[1-4].*Results"},
             "content": {"has_tables": true, "has_images": false},
             "notes": {"is_empty": false}
@@ -250,16 +255,22 @@ async def query_slides(file_path: str, search_criteria: Dict[str, Any], return_f
             "search_criteria": search_criteria
         }, indent=2)
 
-@mcp.tool
-async def extract_table_data(file_path: str, slide_numbers: Optional[Union[int, str, List[int]]] = None, table_criteria: Optional[Dict[str, Any]] = None,
-                      column_selection: Optional[Dict[str, Any]] = None, formatting_detection: Optional[Dict[str, Any]] = None,
-                      output_format: str = "structured", include_metadata: bool = True) -> str:
+@mcp.tool(description="Extract table data with flexible selection and formatting detection. Supports various slide selection methods, table filtering criteria, column selection, and comprehensive formatting detection.")
+async def extract_table_data(
+    file_path: Annotated[str, "Path to the PowerPoint file (.pptx)"],
+    slide_numbers: Annotated[Optional[Union[int, str, List[int]]], "Slide numbers to extract tables from (1-based indexing). Supports: None (all slides), int (single slide), List[int] (specific slides), or str (Python-style slicing like ':100', '5:20', '25:', '1,5,10')"] = None,
+    table_criteria: Annotated[Optional[Dict[str, Any]], "Criteria for selecting tables. Keys: min_rows, max_rows, min_columns, max_columns, header_contains (List[str]), header_patterns (List[str])"] = None,
+    column_selection: Annotated[Optional[Dict[str, Any]], "Configuration for column selection. Keys: specific_columns (List[str]), column_patterns (List[str]), exclude_columns (List[str]), all_columns (bool)"] = None,
+    formatting_detection: Annotated[Optional[Dict[str, Any]], "Configuration for formatting detection. Keys: detect_bold, detect_italic, detect_underline, detect_highlight, detect_colors, detect_hyperlinks, preserve_formatting (all bool)"] = None,
+    output_format: Annotated[str, "Output format for extracted data. Valid values: 'structured' (hierarchical with metadata), 'flat' (flattened array), 'grouped_by_slide' (tables grouped by slide)"] = "structured",
+    include_metadata: Annotated[bool, "Whether to include table metadata (row_span, col_span, row_col_position, position, size, formatting stats)"] = True
+) -> str:
     """Extract table data with flexible selection and formatting detection.
 
     Args:
         file_path: Path to the PowerPoint file (.pptx)
         slide_numbers: Optional. Slide numbers to extract tables from (1-based indexing).
-                       Supports multiple formats:
+                       Supports multiple formats: None(=All),int,List[int],Python-style slicing
                        - None: All slides
                        - int: Single slide (e.g., 3)
                        - List[int]: Specific slides (e.g., [1, 5, 10])
@@ -360,21 +371,21 @@ async def extract_table_data(file_path: str, slide_numbers: Optional[Union[int, 
 
     Example Usage:
         # Basic table extraction from all slides
-        extract_table_data("presentation.pptx")
+        extract_table_data("C:¥¥temp¥¥presentation.pptx")
 
         # Extract specific columns from all slides
-        extract_table_data("presentation.pptx",
+        extract_table_data("C:¥¥temp¥¥presentation.pptx",
                           column_selection={"specific_columns": ["Name", "Age"]})
 
         # Extract tables from first 10 slides
-        extract_table_data("presentation.pptx", slide_numbers=":10")
+        extract_table_data("C:¥¥temp¥¥presentation.pptx", slide_numbers=":10")
 
         # Extract tables with specific criteria
-        extract_table_data("presentation.pptx", slide_numbers=[1, 2],
+        extract_table_data("C:¥¥temp¥¥presentation.pptx", slide_numbers=[1, 2],
                           table_criteria={"min_rows": 2, "header_contains": ["Name"]})
 
         # Extract specific columns with formatting from all slides
-        extract_table_data("presentation.pptx",
+        extract_table_data("C:¥¥temp¥¥presentation.pptx",
                           column_selection={"specific_columns": ["Name", "Age"]},
                           formatting_detection={"detect_bold": True, "detect_colors": True})
     """
@@ -415,8 +426,12 @@ async def extract_table_data(file_path: str, slide_numbers: Optional[Union[int, 
             "slide_numbers": slide_numbers
         }, indent=2)
 
-@mcp.tool
-async def extract_formatted_text(file_path: str, formatting_type: str, slide_numbers: Optional[Union[int, str, List[int]]] = None) -> str:
+@mcp.tool(description="Extract text with specific formatting attributes from PowerPoint slides. Provides a generalized interface for extracting various types of text formatting with position information.")
+async def extract_formatted_text(
+    file_path: Annotated[str, "Path to the PowerPoint file (.pptx). Must be a valid PowerPoint file. Example: 'presentation.pptx' or '/path/to/slides.pptx'"],
+    formatting_type: Annotated[str, "Type of formatting to extract. Valid values: 'bold', 'italic', 'underlined', 'highlighted', 'strikethrough', 'hyperlinks', 'font_sizes', 'font_colors'"],
+    slide_numbers: Annotated[Optional[Union[int, str, List[int]]], "Slide numbers to analyze (1-based indexing). Supports: None (all slides), int (single slide), List[int] (specific slides), or str (Python-style slicing like ':100', '5:20', '25:', '1,5,10')"] = None
+) -> str:
     """Extract text with specific formatting attributes from PowerPoint slides.
 
     This tool provides a generalized interface for extracting various types of text formatting
@@ -425,7 +440,7 @@ async def extract_formatted_text(file_path: str, formatting_type: str, slide_num
 
     Args:
         file_path: Path to the PowerPoint file (.pptx). Must be a valid PowerPoint file.
-                  Example: "presentation.pptx" or "/path/to/slides.pptx"
+                  Example: "C:¥¥temp¥¥presentation.pptx" or "/path/to/slides.pptx"
 
         formatting_type: Type of formatting to extract. Valid values are:
             - "bold": Extract bold text segments and their positions
