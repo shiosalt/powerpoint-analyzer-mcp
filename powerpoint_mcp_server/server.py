@@ -5,7 +5,7 @@ import json
 import logging
 import os
 import sys
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from mcp.server import Server
 from mcp.server.models import InitializationOptions
@@ -760,7 +760,8 @@ class PowerPointMCPServer:
                     "layout_name": result.layout_name,
                     "layout_type": result.layout_type,
                     "object_counts": result.object_counts,
-                    "preview_text": result.preview_text,
+                    "preview_text_3boxes": result.preview_text_3boxes,
+                    "full_text": result.full_text,
                     "table_info": result.table_info,
                     "full_content": result.full_content
                 }
@@ -1297,6 +1298,656 @@ class PowerPointMCPServer:
     def is_running(self) -> bool:
         """Check if the server is currently running."""
         return self._running
+
+    async def _extract_table_data_simple(self, arguments: Dict[str, Any]) -> CallToolResult:
+        """Extract table data in simplified format optimized for minimal context consumption."""
+        try:
+            file_path = arguments.get("file_path")
+            slide_numbers = arguments.get("slide_numbers")
+            column_selection_dict = arguments.get("column_selection", {})
+            output_format = arguments.get("output_format", "row_col_value")
+
+            if not file_path:
+                raise ValueError("file_path is required")
+
+            # Validate output format
+            valid_formats = ["row_col_value", "row_col_formattedvalue", "html", "simple_html"]
+            if output_format not in valid_formats:
+                raise ValueError(f"Invalid output_format: {output_format}. Valid options: {valid_formats}")
+
+            # Resolve slide numbers (None/empty -> all slides)
+            slide_numbers = self._resolve_slide_numbers(file_path, slide_numbers)
+
+            # Validate the file
+            is_valid, error_message = self.file_validator.validate_file(file_path)
+            if not is_valid:
+                raise ValueError(f"File validation failed: {error_message}")
+
+            # Import and use the simple table extractor
+            from .core.simple_table_extractor import SimpleTableExtractor
+
+            # Create simple table extractor
+            simple_extractor = SimpleTableExtractor(self.content_extractor)
+
+            # Extract table data
+            result = simple_extractor.extract_tables_simple(
+                file_path=file_path,
+                slide_numbers=slide_numbers,
+                column_selection=column_selection_dict,
+                output_format=output_format
+            )
+
+            return CallToolResult(
+                content=[
+                    TextContent(
+                        type="text",
+                        text=json.dumps(result, ensure_ascii=False)
+                    )
+                ]
+            )
+
+        except Exception as e:
+            logger.error(f"Error extracting table data (simple): {e}")
+            raise McpError(
+                ErrorData(
+                    code=INTERNAL_ERROR,
+                    message=f"Failed to extract table data: {str(e)}"
+                )
+            )
+
+    async def _query_slides_simple(self, arguments: Dict[str, Any]) -> CallToolResult:
+        """Query slides with simplified output optimized for minimal context consumption."""
+        try:
+            file_path = arguments.get("file_path")
+            search_criteria = arguments.get("search_criteria", {})
+            return_fields = arguments.get("return_fields", ["slide_number", "title", "text"])
+            slide_numbers = arguments.get("slide_numbers")
+            output_format = arguments.get("output_format", "simple")
+            output_type = arguments.get("output_type", "preview_text_3boxes")
+            limit = arguments.get("limit", 1000)
+
+            if not file_path:
+                raise ValueError("file_path is required")
+
+            # Validate output format
+            valid_formats = ["simple", "formatted"]
+            if output_format not in valid_formats:
+                raise ValueError(f"Invalid output_format: {output_format}. Valid options: {valid_formats}")
+
+            # Validate the file
+            is_valid, error_message = self.file_validator.validate_file(file_path)
+            if not is_valid:
+                raise ValueError(f"File validation failed: {error_message}")
+
+            # Remove object_count, layout, and slide_numbers from search_criteria
+            # Move slide_numbers to top-level parameter
+            if "object_count" in search_criteria.get("content", {}):
+                del search_criteria["content"]["object_count"]
+            if "layout" in search_criteria:
+                del search_criteria["layout"]
+            if "slide_numbers" in search_criteria:
+                if slide_numbers is None:
+                    slide_numbers = search_criteria["slide_numbers"]
+                del search_criteria["slide_numbers"]
+
+            # Convert section (str) to sections (List[str])
+            if "section" in search_criteria:
+                section_value = search_criteria["section"]
+                del search_criteria["section"]
+                if isinstance(section_value, str):
+                    search_criteria["sections"] = [section_value]
+                elif isinstance(section_value, list):
+                    search_criteria["sections"] = section_value
+
+            # Validate search criteria dictionary
+            validation_result = self.slide_query_engine.validate_search_criteria_dict(search_criteria)
+            if not validation_result['is_valid']:
+                logger.warning(f"Invalid search criteria dictionary: {validation_result['errors']}")
+                response = {
+                    "summary": {
+                        "total_slides_in_presentation": 0,
+                        "slides_matching_criteria": 0,
+                        "results_returned": 0
+                    },
+                    "results": [],
+                    "validation_errors": validation_result['errors']
+                }
+                return CallToolResult(
+                    content=[
+                        TextContent(
+                            type="text",
+                            text=json.dumps(response, indent=2, ensure_ascii=False)
+                        )
+                    ]
+                )
+
+            # Add slide_numbers to filters
+            if slide_numbers is not None:
+                search_criteria["slide_numbers"] = slide_numbers
+
+            # Create filters from dictionary
+            filters = create_filters_from_dict(search_criteria)
+
+            # Query slides
+            results = self.slide_query_engine.query_slides(
+                file_path=file_path,
+                filters=filters,
+                return_fields=return_fields,
+                limit=limit
+            )
+
+            # Get total slides count
+            with ZipExtractor(file_path) as extractor:
+                total_slides = len(extractor.get_slide_xml_files_sorted())
+
+            # Convert results to simplified format
+            serializable_results = []
+            tables_in_slides_numbers = []
+            tables_in_slides_counts = []
+            
+            for result in results:
+                result_dict = {"slide_number": result.slide_number}
+
+                # Add requested fields
+                if "title" in return_fields:
+                    if output_format == "formatted":
+                        # Format title as h2 for HTML or ## for markdown
+                        title = result.title or ""
+                        if title:
+                            result_dict["title"] = f"<h2>{title}</h2>"
+                        else:
+                            result_dict["title"] = ""
+                    else:
+                        result_dict["title"] = result.title
+                        
+                if "subtitle" in return_fields:
+                    if output_format == "formatted":
+                        # Format subtitle as h3 for HTML or ### for markdown
+                        subtitle = result.subtitle or ""
+                        if subtitle:
+                            result_dict["subtitle"] = f"<h3>{subtitle}</h3>"
+                        else:
+                            result_dict["subtitle"] = ""
+                    else:
+                        result_dict["subtitle"] = result.subtitle
+                        
+                if "text" in return_fields:
+                    # Use output_type to determine which text to extract
+                    if output_format == "formatted":
+                        if output_type == "full_text":
+                            result_dict["text"] = self._extract_formatted_full_text(
+                                file_path, result.slide_number
+                            )
+                        else:  # preview_text_3boxes (default)
+                            result_dict["text"] = self._extract_formatted_preview_text(
+                                file_path, result.slide_number
+                            )
+                    else:
+                        # Simple format without HTML
+                        if output_type == "full_text":
+                            result_dict["text"] = result.full_text
+                        else:  # preview_text_3boxes (default)
+                            result_dict["text"] = result.preview_text_3boxes
+                            
+                if "extracted_tables" in return_fields:
+                    # Extract tables in simplified format
+                    tables = self._extract_simple_tables_for_slide(
+                        file_path, result.slide_number, output_format
+                    )
+                    result_dict["extracted_tables"] = tables
+                    
+                    # Track table information for summary
+                    if tables:
+                        tables_in_slides_numbers.append(result.slide_number)
+                        tables_in_slides_counts.append(len(tables))
+
+                serializable_results.append(result_dict)
+
+            response = {
+                "summary": {
+                    "total_slides_in_presentation": total_slides,
+                    "slides_matching_criteria": len(results),
+                    "results_returned": len(serializable_results),
+                    "tables_in_slides": {
+                        "slide_number": tables_in_slides_numbers,
+                        "table_count": tables_in_slides_counts
+                    }
+                },
+                "results": serializable_results
+            }
+
+            return CallToolResult(
+                content=[
+                    TextContent(
+                        type="text",
+                        text=json.dumps(response, indent=2, ensure_ascii=False)
+                    )
+                ]
+            )
+
+        except Exception as e:
+            logger.error(f"Error querying slides (simple): {e}")
+            raise McpError(
+                ErrorData(
+                    code=INTERNAL_ERROR,
+                    message=f"Failed to query slides: {str(e)}"
+                )
+            )
+
+    def _extract_simple_tables_for_slide(
+        self,
+        file_path: str,
+        slide_number: int,
+        output_format: str
+    ) -> List[Dict[str, Any]]:
+        """Extract tables for a single slide in simplified format."""
+        try:
+            from .core.simple_table_extractor import SimpleTableExtractor
+
+            simple_extractor = SimpleTableExtractor(self.content_extractor)
+            
+            # For formatted output, use HTML format
+            if output_format == "formatted":
+                result = simple_extractor.extract_tables_simple(
+                    file_path=file_path,
+                    slide_numbers=[slide_number],
+                    column_selection=None,
+                    output_format="html"
+                )
+                
+                # Extract HTML table data
+                html_tables = result.get("extracted_html_tables", [])
+                simplified_tables = []
+                for table in html_tables:
+                    simplified_tables.append({
+                        "rows": table["rows"],
+                        "columns": table["columns"],
+                        "headers": table["headers"],
+                        "htmldata": table["htmldata"]
+                    })
+            else:
+                result = simple_extractor.extract_tables_simple(
+                    file_path=file_path,
+                    slide_numbers=[slide_number],
+                    column_selection=None,
+                    output_format="row_col_value"
+                )
+                
+                # Extract just the table data without slide_number wrapper
+                tables = result.get("extracted_tables", [])
+                simplified_tables = []
+                for table in tables:
+                    simplified_tables.append({
+                        "rows": table["rows"],
+                        "columns": table["columns"],
+                        "headers": table["headers"],
+                        "data": table["data"]
+                    })
+
+            return simplified_tables
+
+        except Exception as e:
+            logger.warning(f"Failed to extract simple tables for slide {slide_number}: {e}")
+            return []
+
+    def _extract_formatted_preview_text(
+        self,
+        file_path: str,
+        slide_number: int
+    ) -> str:
+        """Extract preview text with HTML formatting for a single slide."""
+        try:
+            with ZipExtractor(file_path) as extractor:
+                slide_files = extractor.get_slide_xml_files_sorted()
+                if slide_number < 1 or slide_number > len(slide_files):
+                    return ""
+                
+                slide_file = slide_files[slide_number - 1]
+                slide_xml = extractor.read_xml_content(slide_file)
+                
+                if not slide_xml:
+                    return ""
+                
+                root = self.content_extractor.xml_parser.parse_xml_string(slide_xml)
+                if root is None:
+                    return ""
+                
+                # Extract text with HTML formatting
+                html_parts = []
+                
+                # Extract title and subtitle first
+                title, subtitle = self._extract_title_and_subtitle(root)
+                if title:
+                    html_parts.append(f'<h2>{title}</h2>')
+                if subtitle:
+                    html_parts.append(f'<h3>{subtitle}</h3>')
+                
+                # Find all text-containing shapes (excluding title/subtitle)
+                shapes = self.content_extractor.xml_parser.find_elements_with_namespace(
+                    root, './/p:sp'
+                )
+                
+                shape_count = 0
+                for shape in shapes:
+                    # Skip title and subtitle shapes
+                    if self._is_title_or_subtitle_shape(shape):
+                        continue
+                        
+                    if shape_count >= 3:  # Limit to 3 text boxes
+                        break
+                    
+                    tx_body = self.content_extractor.xml_parser.find_element_with_namespace(
+                        shape, './/p:txBody'
+                    )
+                    
+                    if tx_body is not None:
+                        shape_html = self._extract_shape_html_with_formatting(tx_body)
+                        if shape_html:
+                            # Truncate long text
+                            if len(shape_html) > 200:
+                                shape_html = shape_html[:197] + "..."
+                            # Add white-space: pre-wrap for textboxes
+                            html_parts.append(f'<div style="white-space: pre-wrap;">{shape_html}</div>')
+                            shape_count += 1
+                
+                return ''.join(html_parts) if html_parts else ""
+                
+        except Exception as e:
+            logger.warning(f"Failed to extract formatted preview text for slide {slide_number}: {e}")
+            return ""
+    
+    def _extract_formatted_full_text(
+        self,
+        file_path: str,
+        slide_number: int
+    ) -> str:
+        """Extract full text with HTML formatting for a single slide (no limit on text elements)."""
+        try:
+            with ZipExtractor(file_path) as extractor:
+                slide_files = extractor.get_slide_xml_files_sorted()
+                if slide_number < 1 or slide_number > len(slide_files):
+                    return ""
+                
+                slide_file = slide_files[slide_number - 1]
+                slide_xml = extractor.read_xml_content(slide_file)
+                
+                if not slide_xml:
+                    return ""
+                
+                root = self.content_extractor.xml_parser.parse_xml_string(slide_xml)
+                if root is None:
+                    return ""
+                
+                # Extract text with HTML formatting
+                html_parts = []
+                
+                # Extract title and subtitle first
+                title, subtitle = self._extract_title_and_subtitle(root)
+                if title:
+                    html_parts.append(f'<h2>{title}</h2>')
+                if subtitle:
+                    html_parts.append(f'<h3>{subtitle}</h3>')
+                
+                # Find all text-containing shapes (excluding title/subtitle)
+                shapes = self.content_extractor.xml_parser.find_elements_with_namespace(
+                    root, './/p:sp'
+                )
+                
+                for shape in shapes:
+                    # Skip title and subtitle shapes
+                    if self._is_title_or_subtitle_shape(shape):
+                        continue
+                    
+                    tx_body = self.content_extractor.xml_parser.find_element_with_namespace(
+                        shape, './/p:txBody'
+                    )
+                    
+                    if tx_body is not None:
+                        shape_html = self._extract_shape_html_with_formatting(tx_body)
+                        if shape_html:
+                            # Higher truncation limit for full text
+                            if len(shape_html) > 1000:
+                                shape_html = shape_html[:997] + "..."
+                            # Add white-space: pre-wrap for textboxes
+                            html_parts.append(f'<div style="white-space: pre-wrap;">{shape_html}</div>')
+                
+                return ''.join(html_parts) if html_parts else ""
+                
+        except Exception as e:
+            logger.warning(f"Failed to extract formatted full text for slide {slide_number}: {e}")
+            return ""
+    
+    def _extract_color_from_fill(self, fill_elem) -> Optional[str]:
+        """Extract color value from a fill element."""
+        try:
+            # Look for RGB color
+            srgb_clr = self.content_extractor.xml_parser.find_element_with_namespace(
+                fill_elem, './/a:srgbClr'
+            )
+            if srgb_clr is not None:
+                color_val = srgb_clr.get('val')
+                if color_val:
+                    return f"#{color_val}"
+            
+            # Look for scheme color
+            scheme_clr = self.content_extractor.xml_parser.find_element_with_namespace(
+                fill_elem, './/a:schemeClr'
+            )
+            if scheme_clr is not None:
+                color_val = scheme_clr.get('val')
+                if color_val:
+                    return color_val
+            
+            return None
+            
+        except Exception as e:
+            logger.warning(f"Failed to extract color from fill: {e}")
+            return None
+    
+    def _extract_title_and_subtitle(self, root) -> Tuple[str, str]:
+        """Extract title and subtitle from slide root."""
+        try:
+            from html import escape
+            title = ""
+            subtitle = ""
+            
+            shapes = self.content_extractor.xml_parser.find_elements_with_namespace(
+                root, './/p:sp'
+            )
+            
+            for shape in shapes:
+                nv_sp_pr = self.content_extractor.xml_parser.find_element_with_namespace(
+                    shape, './/p:nvSpPr'
+                )
+                if nv_sp_pr is not None:
+                    ph = self.content_extractor.xml_parser.find_element_with_namespace(
+                        nv_sp_pr, './/p:ph'
+                    )
+                    if ph is not None:
+                        ph_type = ph.get('type', '')
+                        if ph_type == 'title' or ph_type == 'ctrTitle':
+                            title = escape(self.content_extractor._extract_shape_text_content(shape))
+                        elif ph_type == 'subTitle':
+                            subtitle = escape(self.content_extractor._extract_shape_text_content(shape))
+            
+            return title, subtitle
+            
+        except Exception as e:
+            logger.warning(f"Failed to extract title and subtitle: {e}")
+            return "", ""
+    
+    def _is_title_or_subtitle_shape(self, shape) -> bool:
+        """Check if a shape is a title or subtitle placeholder."""
+        try:
+            nv_sp_pr = self.content_extractor.xml_parser.find_element_with_namespace(
+                shape, './/p:nvSpPr'
+            )
+            if nv_sp_pr is not None:
+                ph = self.content_extractor.xml_parser.find_element_with_namespace(
+                    nv_sp_pr, './/p:ph'
+                )
+                if ph is not None:
+                    ph_type = ph.get('type', '')
+                    return ph_type in ['title', 'ctrTitle', 'subTitle']
+            return False
+        except Exception:
+            return False
+    
+    def _extract_shape_html_with_formatting(self, tx_body) -> str:
+        """Extract shape text as HTML with inline formatting."""
+        try:
+            from html import escape
+            
+            # Get all paragraphs
+            paragraphs = self.content_extractor.xml_parser.find_elements_with_namespace(
+                tx_body, './/a:p'
+            )
+            
+            if not paragraphs:
+                return ""
+            
+            html_parts = []
+            
+            for para_idx, para in enumerate(paragraphs):
+                # Find all runs in the paragraph
+                runs = self.content_extractor.xml_parser.find_elements_with_namespace(
+                    para, './/a:r'
+                )
+                
+                for run in runs:
+                    # Get text content
+                    t_elem = self.content_extractor.xml_parser.find_element_with_namespace(
+                        run, './/a:t'
+                    )
+                    if t_elem is None or t_elem.text is None:
+                        continue
+                    
+                    text = escape(t_elem.text)
+                    
+                    # Get run properties
+                    r_pr = self.content_extractor.xml_parser.find_element_with_namespace(
+                        run, './/a:rPr'
+                    )
+                    
+                    if r_pr is not None:
+                        tags_open = []
+                        tags_close = []
+                        styles = []
+                        
+                        # Check for bold
+                        is_bold = False
+                        bold_attr = r_pr.get('b')
+                        if bold_attr and bold_attr != '0':
+                            is_bold = True
+                        else:
+                            bold_elem = self.content_extractor.xml_parser.find_element_with_namespace(
+                                r_pr, './/a:b'
+                            )
+                            if bold_elem is not None:
+                                is_bold = bold_elem.get('val', '1') != '0'
+                        
+                        if is_bold:
+                            tags_open.append('<strong>')
+                            tags_close.insert(0, '</strong>')
+                        
+                        # Check for italic
+                        is_italic = False
+                        italic_attr = r_pr.get('i')
+                        if italic_attr and italic_attr != '0':
+                            is_italic = True
+                        else:
+                            italic_elem = self.content_extractor.xml_parser.find_element_with_namespace(
+                                r_pr, './/a:i'
+                            )
+                            if italic_elem is not None:
+                                is_italic = italic_elem.get('val', '1') != '0'
+                        
+                        if is_italic:
+                            tags_open.append('<em>')
+                            tags_close.insert(0, '</em>')
+                        
+                        # Check for underline
+                        is_underline = False
+                        underline_attr = r_pr.get('u')
+                        if underline_attr and underline_attr != 'none':
+                            is_underline = True
+                        else:
+                            underline_elem = self.content_extractor.xml_parser.find_element_with_namespace(
+                                r_pr, './/a:u'
+                            )
+                            if underline_elem is not None:
+                                is_underline = underline_elem.get('val', 'sng') != 'none'
+                        
+                        if is_underline:
+                            tags_open.append('<u>')
+                            tags_close.insert(0, '</u>')
+                        
+                        # Check for strikethrough
+                        is_strike = False
+                        strike_attr = r_pr.get('strike')
+                        if strike_attr and strike_attr != 'noStrike':
+                            is_strike = True
+                        else:
+                            strike_elem = self.content_extractor.xml_parser.find_element_with_namespace(
+                                r_pr, './/a:strike'
+                            )
+                            if strike_elem is not None:
+                                is_strike = strike_elem.get('val', 'sngStrike') != 'noStrike'
+                        
+                        if is_strike:
+                            tags_open.append('<s>')
+                            tags_close.insert(0, '</s>')
+                        
+                        # Check for font color
+                        solid_fill = self.content_extractor.xml_parser.find_element_with_namespace(
+                            r_pr, './/a:solidFill'
+                        )
+                        if solid_fill is not None:
+                            font_color = self._extract_color_from_fill(solid_fill)
+                            if font_color:
+                                styles.append(f'color: {font_color}')
+                        
+                        # Check for highlight color
+                        highlight_elem = self.content_extractor.xml_parser.find_element_with_namespace(
+                            r_pr, './/a:highlight'
+                        )
+                        if highlight_elem is not None:
+                            highlight_color = self._extract_color_from_fill(highlight_elem)
+                            if highlight_color:
+                                styles.append(f'background-color: {highlight_color}')
+                        
+                        # Check for hyperlinks
+                        hlinkClick = self.content_extractor.xml_parser.find_element_with_namespace(
+                            r_pr, './/a:hlinkClick'
+                        )
+                        if hlinkClick is not None:
+                            r_id = hlinkClick.get('{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id')
+                            if r_id:
+                                tags_open.insert(0, f'<a href="#{r_id}">')
+                                tags_close.append('</a>')
+                        
+                        # Build HTML with formatting
+                        if styles:
+                            html_parts.append(f'<span style="{"; ".join(styles)}">')
+                        
+                        html_parts.extend(tags_open)
+                        html_parts.append(text)
+                        html_parts.extend(tags_close)
+                        
+                        if styles:
+                            html_parts.append('</span>')
+                    else:
+                        html_parts.append(text)
+                
+                # Add line break between paragraphs
+                if para_idx < len(paragraphs) - 1:
+                    html_parts.append('<br>')
+            
+            return ''.join(html_parts)
+            
+        except Exception as e:
+            logger.warning(f"Failed to extract shape HTML with formatting: {e}")
+            return ""
 
     async def shutdown(self):
         """Shutdown the server gracefully."""

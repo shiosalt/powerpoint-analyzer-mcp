@@ -81,7 +81,8 @@ class SlideQueryResult:
     layout_name: Optional[str] = None
     layout_type: Optional[str] = None
     object_counts: Optional[Dict[str, int]] = None
-    preview_text: Optional[str] = None
+    preview_text_3boxes: Optional[str] = None
+    full_text: Optional[str] = None
     table_info: Optional[List[Dict[str, Any]]] = None
     full_content: Optional[Dict[str, Any]] = None
 
@@ -565,8 +566,15 @@ class SlideQueryEngine:
                 result_data['layout_type'] = slide_data.get('layout_type')
             elif field == 'object_counts':
                 result_data['object_counts'] = slide_data.get('object_counts')
-            elif field == 'preview_text':
-                result_data['preview_text'] = self._generate_preview_text(slide_data)
+            elif field == 'text':
+                # 'text' field maps to preview_text_3boxes by default
+                # The actual output_type selection is handled in server.py
+                result_data['preview_text_3boxes'] = self._generate_preview_text_3boxes(slide_data)
+                result_data['full_text'] = self._generate_full_text(slide_data)
+            elif field == 'preview_text_3boxes':
+                result_data['preview_text_3boxes'] = self._generate_preview_text_3boxes(slide_data)
+            elif field == 'full_text':
+                result_data['full_text'] = self._generate_full_text(slide_data)
             elif field == 'table_info':
                 result_data['table_info'] = self._generate_table_info(slide_data)
             elif field == 'full_content':
@@ -574,26 +582,107 @@ class SlideQueryEngine:
         
         return SlideQueryResult(**result_data)
     
-    def _generate_preview_text(self, slide_data: Dict[str, Any]) -> str:
-        """Generate preview text from slide content."""
+    def _generate_preview_text_3boxes(self, slide_data: Dict[str, Any]) -> str:
+        """
+        Generate preview text with title, content placeholder, and up to 3 additional text boxes.
+        
+        Title and content placeholders are always included (not counted in the 3-box limit).
+        Then up to 3 additional text elements (text boxes) are included.
+        """
         preview_parts = []
         
-        # Add title
-        if slide_data.get('title'):
-            preview_parts.append(f"Title: {slide_data['title']}")
+        # Add title (always included, not counted)
+        title = slide_data.get('title')
+        if title:
+            preview_parts.append(f"Title: {title}")
         
-        # Add first few text elements
+        # Get placeholders to identify content from placeholders
+        placeholders = slide_data.get('placeholders', [])
+        placeholder_texts = set()
+        
+        # Collect placeholder texts (title and content)
+        for ph in placeholders:
+            if isinstance(ph, dict):
+                content = ph.get('content', '')
+                if content:
+                    placeholder_texts.add(content)
+        
+        # Add content from content placeholders (always included, not counted)
+        for ph in placeholders:
+            if isinstance(ph, dict):
+                ph_type = ph.get('type', '')
+                content = ph.get('content', '')
+                if content and ph_type in ['content', 'body', 'obj'] and content != title:
+                    # Truncate long text
+                    display_content = content
+                    if len(display_content) > 100:
+                        display_content = display_content[:97] + "..."
+                    preview_parts.append(f"Content: {display_content}")
+        
+        # Add up to 3 additional text elements (text boxes, excluding placeholders)
         text_elements = slide_data.get('text_elements', [])
-        for i, text_elem in enumerate(text_elements[:3]):  # First 3 text elements
+        text_box_count = 0
+        max_text_boxes = 3
+        
+        for text_elem in text_elements:
+            if text_box_count >= max_text_boxes:
+                break
+                
             if isinstance(text_elem, dict):
                 content = text_elem.get('content_plain', '') or ''
-                if content:
+                # Skip if this text is from a placeholder (title or content)
+                if content and content not in placeholder_texts:
                     # Truncate long text
-                    if len(content) > 100:
-                        content = content[:97] + "..."
-                    preview_parts.append(f"Text {i+1}: {content}")
+                    display_content = content
+                    if len(display_content) > 100:
+                        display_content = display_content[:97] + "..."
+                    text_box_count += 1
+                    preview_parts.append(f"Text {text_box_count}: {display_content}")
         
         return " | ".join(preview_parts)
+    
+    def _generate_full_text(self, slide_data: Dict[str, Any]) -> str:
+        """
+        Generate full text with all text elements (no limit).
+        
+        Includes title, subtitle, and all text elements.
+        """
+        text_parts = []
+        
+        # Add title
+        title = slide_data.get('title')
+        if title:
+            text_parts.append(f"Title: {title}")
+        
+        # Add subtitle if present
+        subtitle = slide_data.get('subtitle')
+        if subtitle:
+            text_parts.append(f"Subtitle: {subtitle}")
+        
+        # Get all text elements
+        text_elements = slide_data.get('text_elements', [])
+        
+        # Collect texts that are already shown (title, subtitle)
+        shown_texts = set()
+        if title:
+            shown_texts.add(title)
+        if subtitle:
+            shown_texts.add(subtitle)
+        
+        text_count = 0
+        for text_elem in text_elements:
+            if isinstance(text_elem, dict):
+                content = text_elem.get('content_plain', '') or ''
+                # Skip if already shown as title or subtitle
+                if content and content not in shown_texts:
+                    text_count += 1
+                    # Truncate very long text (but with higher limit)
+                    display_content = content
+                    if len(display_content) > 500:
+                        display_content = display_content[:497] + "..."
+                    text_parts.append(f"Text {text_count}: {display_content}")
+        
+        return " | ".join(text_parts)
     
     def _generate_table_info(self, slide_data: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Generate table information summary."""
@@ -671,7 +760,8 @@ class SlideQueryEngine:
             # Validate return fields
             valid_return_fields = [
                 'slide_number', 'title', 'subtitle', 'layout', 'object_counts',
-                'preview_text', 'table_info', 'full_content', 'notes', 'section'
+                'text', 'table_info', 'full_content', 'notes', 'section',
+                'extracted_tables'  # Added for simplified extraction
             ]
             
             for field in return_fields:

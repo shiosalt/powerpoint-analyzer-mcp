@@ -303,6 +303,11 @@ class EnhancedTableExtractor:
             table_data = []
             headers = []
             max_columns = 0
+            
+            # Track cells and their spans for proper header generation
+            header_cells = []
+            # Track which physical cell indices to skip (they're within merged cells)
+            cells_to_skip_map = {}  # row_index -> set of cell indices to skip
 
             for row_index, row_elem in enumerate(rows):
                 # Find all cells in this row
@@ -311,32 +316,71 @@ class EnhancedTableExtractor:
                 )
 
                 row_data = {}
+                cells_to_skip = set()
 
                 for col_index, cell_elem in enumerate(cells):
                     cell = self._parse_enhanced_table_cell(
                         cell_elem, formatting_detection, row_index, col_index
                     )
 
+                    # Track which cells to skip in this row (those within merged cell spans)
+                    if cell.col_span > 1:
+                        # Skip the next (col_span - 1) cells
+                        for skip_offset in range(1, cell.col_span):
+                            if col_index + skip_offset < len(cells):
+                                cells_to_skip.add(col_index + skip_offset)
+
                     # Use column index as key for now, will be replaced with headers
                     column_key = f"col_{col_index}"
                     row_data[column_key] = cell
 
-                    # Extract headers from first row
+                    # Store header row cells for proper processing
                     if row_index == 0:
-                        headers.append(cell.value if cell.value.strip() else f"Column {col_index + 1}")
+                        header_cells.append(cell)
 
+                # Store which cells to skip for this row
+                cells_to_skip_map[row_index] = cells_to_skip
                 table_data.append(row_data)
                 max_columns = max(max_columns, len(cells))
 
+            # Generate headers accounting for merged cells (gridSpan)
+            # Only include headers for cells that aren't within a merged cell span
+            if header_cells:
+                cells_to_skip_in_header = cells_to_skip_map.get(0, set())
+                
+                for cell_index, cell in enumerate(header_cells):
+                    # Skip cells that are within a previous cell's span
+                    if cell_index in cells_to_skip_in_header:
+                        continue
+                    
+                    # Determine header name
+                    if cell.value.strip():
+                        header_name = cell.value
+                    else:
+                        # Generate default name for empty cells
+                        header_name = f"Column {len(headers) + 1}"
+                    
+                    headers.append(header_name)
+
             # Replace column keys with actual headers
+            # Map physical cell indices to logical header indices
             formatted_data = []
-            for row_data in table_data:
+            for row_index, row_data in enumerate(table_data):
                 formatted_row = {}
+                cells_to_skip_in_row = cells_to_skip_map.get(row_index, set())
+                header_index = 0
+                
                 for col_index in range(max_columns):
+                    # Skip cells that are within merged cell spans
+                    if col_index in cells_to_skip_in_row:
+                        continue
+                    
                     old_key = f"col_{col_index}"
                     if old_key in row_data:
-                        header = headers[col_index] if col_index < len(headers) else f"Column {col_index + 1}"
+                        header = headers[header_index] if header_index < len(headers) else f"Column {header_index + 1}"
                         formatted_row[header] = row_data[old_key]
+                        header_index += 1
+                
                 formatted_data.append(formatted_row)
 
             # Debug logging for slide number assignment
@@ -347,12 +391,12 @@ class EnhancedTableExtractor:
                 slide_number=slide_number,
                 table_index=table_index,
                 rows=len(formatted_data),
-                columns=max_columns,
+                columns=len(headers),  # Use logical column count, not physical
                 headers=headers,
                 data=formatted_data,
                 metadata={
                     'has_formatting': self._has_formatting(formatted_data),
-                    'cell_count': len(formatted_data) * max_columns,
+                    'cell_count': len(formatted_data) * len(headers),
                     'non_empty_cells': self._count_non_empty_cells(formatted_data)
                 }
             )

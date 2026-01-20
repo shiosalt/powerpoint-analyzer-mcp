@@ -74,22 +74,24 @@ def get_powerpoint_server() -> PowerPointMCPServer:
 
 # Create FastMCP instance with lifespan
 mcp = FastMCP(config.server_name, lifespan=lifespan)
-@mcp.tool(description="Query slides with flexible filtering criteria. Provides powerful slide filtering and search capabilities for PowerPoint presentations with complex search criteria including title matching, content analysis, layout filtering, and slide number selection.")
+@mcp.tool(description="Query slides with flexible filtering criteria. Provides powerful slide filtering and search capabilities for PowerPoint presentations.")
 async def query_slides(
     file_path: Annotated[str, "Path to the PowerPoint file (.pptx). Must be a valid PowerPoint file. Example: 'C:\\\\temp\\\\presentation.pptx' or '/path/to/slides.pptx'"],
-    search_criteria: Annotated[Dict[str, Any], "Dictionary containing search and filter criteria. Supports title filtering (contains, starts_with, ends_with, regex, one_of), content filtering (contains_text, has_tables, has_charts, has_images, object_count), layout filtering (type, name), notes filtering (contains, regex, is_empty), slide_numbers (int, List[int], or str (Python-style slicing like ':100', '5:20', '25:', '1,5,10')), and section (str) filtering"],
-    return_fields: Annotated[Optional[List[str]], "List of fields to include in results. Valid values: 'slide_number', 'title', 'subtitle', 'layout_name', 'layout_type', 'object_counts', 'preview_text', 'table_info', 'full_content'. Default: ['slide_number', 'title', 'object_counts']"] = None,
-    limit: Annotated[int, "Maximum number of results to return (1-1000, default: 1000)"] = 1000
+    search_criteria: Annotated[Dict[str, Any], "Dictionary containing search and filter criteria. Supports title filtering (contains, starts_with, ends_with, regex, one_of), content filtering (contains_text, has_tables, has_charts, has_images), notes filtering (contains, regex, is_empty), and sections (List[str]) filtering"],
+    return_fields: Annotated[Optional[List[str]], "List of fields to include in results. Valid values: 'slide_number', 'title', 'subtitle', 'text', 'extracted_tables'. Default: ['slide_number', 'title', 'text']"] = None,
+    slide_numbers: Annotated[Optional[Union[int, str, List[int]]], "Slide numbers to query (1-based indexing). Supports: None (all slides), int (single slide), List[int] (specific slides), or str (Python-style slicing like ':100', '5:20', '25:', '1,5,10')"] = None,
+    output_type: Annotated[str, "Text output type: 'preview_text_3boxes' (default, shows title + content placeholder + 3 text boxes) or 'full_text' (shows all text elements)"] = "preview_text_3boxes",
+    output_format: Annotated[str, "Output format: 'simple' (default, no formatting in text/tables) or 'formatted' (includes formatting)"] = "simple",
+    limit: Annotated[int, "Maximum number of slides to return (1-10000, default: 1000)"] = 1000
 ) -> str:
     """Query slides with flexible filtering criteria.
 
-    This tool provides powerful slide filtering and search capabilities for PowerPoint presentations.
-    It supports complex search criteria including title matching, content analysis, layout filtering,
-    and slide number selection with flexible result formatting.
+    This tool provides powerful slide filtering and search capabilities for PowerPoint presentations
+    with simplified output optimized for minimal context consumption.
 
     Args:
         file_path: Path to the PowerPoint file (.pptx). Must be a valid PowerPoint file.
-                  Example: "C:¥¥temp¥¥presentation.pptx" or "/path/to/slides.pptx"
+                  Example: "C:\\temp\\presentation.pptx" or "/path/to/slides.pptx"
 
         search_criteria: Dictionary containing search and filter criteria. Structure:
             {
@@ -104,136 +106,110 @@ async def query_slides(
                     "contains_text": "str",   # Slide text contains this string
                     "has_tables": bool,       # Slide has tables (true/false)
                     "has_charts": bool,       # Slide has charts (true/false)
-                    "has_images": bool,       # Slide has images (true/false)
-                    "object_count": {         # Object count constraints
-                        "min": int,           # Minimum number of objects
-                        "max": int            # Maximum number of objects
-                    }
-                },
-                "layout": {                   # Layout-based filtering
-                    "type": "str",            # Layout type (e.g., "title", "title_content")
-                    "name": "str"             # Layout name (e.g., "Title Slide")
+                    "has_images": bool        # Slide has images (true/false)
                 },
                 "notes": {                    # Speaker notes filtering
                     "contains": "str",        # Notes contain this text
                     "regex": "str",           # Notes match this regex
                     "is_empty": bool          # Notes are empty (true/false)
                 },
-                "slide_numbers": "Specific slide numbers to include (1-based). Supports multiple formats: int (single slide), List[int] (specific slides), or str (Python-style slicing like ':100', '5:20', '25:', '1,5,10')",
-                "section": "str"              # Section name to filter by
+                "sections": ["str1", "str2"]  # Section names to filter by (List[str])
             }
 
         return_fields: List of fields to include in results. Valid field names:
             - "slide_number": Slide number (always included)
             - "title": Slide title
             - "subtitle": Slide subtitle
-            - "layout_name": Layout name
-            - "layout_type": Layout type
-            - "object_counts": Object count statistics
-            - "preview_text": Preview of slide text content
-            - "table_info": Table structure information
-            - "full_content": Complete slide content
-            Default: ["slide_number", "title", "object_counts"]
+            - "preview_text_3boxes": Preview with title + content placeholder + 3 text boxes
+            - "full_text": All text elements without limit
+            - "extracted_tables": Table data in simplified format
+            Default: ["slide_number", "title", "preview_text_3boxes"]
 
-        limit: Maximum number of results to return (1-1000, default: 1000)
+        slide_numbers: Optional slide numbers to query (1-based indexing).
+                      Supports: None (all slides), int, List[int], or str (Python-style slicing)
+
+        output_type: Text output type selection:
+            - "preview_text_3boxes": Shows title + content placeholder + up to 3 text boxes (default)
+            - "full_text": Shows all text elements without limit
+
+        output_format: Output format selection:
+            - "simple": No formatting in text/tables (default)
+            - "formatted": Includes formatting information
+
+        limit: Maximum number of slides to return (1-10000, default: 1000)
 
     Returns:
         JSON string with the following structure:
         {
-            "file_path": "str",
-            "search_criteria": {...},
             "summary": {
                 "total_slides_in_presentation": int,
                 "slides_matching_criteria": int,
                 "results_returned": int,
-                "search_time_ms": float
+                "tables_in_slides": {
+                    "slide_number": [int, int, ...],
+                    "table_count": [int, int, ...]
+                }
             },
             "results": [
                 {
                     "slide_number": int,
                     "title": "str",
                     "subtitle": "str",
-                    "layout_name": "str",
-                    "layout_type": "str",
-                    "object_counts": {
-                        "shapes": int,
-                        "text_boxes": int,
-                        "images": int,
-                        "tables": int
-                    },
-                    "preview_text": "str",
-                    "table_info": [
+                    "text": "str",  # Content follows output_type parameter
+                    "extracted_tables": [
                         {
                             "rows": int,
                             "columns": int,
-                            "preview": "str"
+                            "headers": ["col1", "col2", ...],
+                            "data": [[row, col, "value"], ...]
                         }
-                    ],
-                    "full_content": {...}
+                    ]
                 }
             ]
         }
 
-        | key | type | description |
-        |------|------|-------------|
-        | file_path | str | Path to the analyzed file |
-        | search_criteria | object | The search criteria that were applied |
-        | summary.total_slides_in_presentation | int | Total number of slides in the presentation |
-        | summary.slides_matching_criteria | int | Number of slides that matched the search criteria |
-        | summary.results_returned | int | Number of results returned (limited by 'limit' parameter) |
-        | summary.search_time_ms | float | Time taken to perform the search in milliseconds |
-        | results[].slide_number | int | Slide number (1-based) |
-        | results[].title | str | Slide title (included if requested in return_fields) |
-        | results[].subtitle | str | Slide subtitle (included if requested in return_fields) |
-        | results[].layout_name | str | Name of the slide layout (included if requested in return_fields) |
-        | results[].layout_type | str | Type of layout (included if requested in return_fields) |
-        | results[].object_counts | object | Count of different object types (included if requested in return_fields) |
-        | results[].preview_text | str | Preview of slide text content (included if requested in return_fields) |
-        | results[].table_info | array | Information about tables in the slide (included if requested in return_fields) |
-        | results[].full_content | object | Complete slide content (included if requested in return_fields) |
-
-        If an error occurs, returns:
-        {
-            "error": str,
-            "error_type": "query_slides_error",
-            "file_path": str
-        }
-
     Example Usage:
         # Find slides with "Sales" in the title
-        query_slides("C:¥¥temp¥¥presentation.pptx", {"title": {"contains": "Sales"}})
+        query_slides("presentation.pptx", {"title": {"contains": "Sales"}})
 
-        # Find slides with tables and specific layout
-        query_slides("C:¥¥temp¥¥presentation.pptx", {
-            "content": {"has_tables": true},
-            "layout": {"type": "title_content"}
-        })
+        # Find slides with tables
+        query_slides("presentation.pptx", {"content": {"has_tables": true}})
 
         # Find specific slides with custom return fields
-        query_slides("C:¥¥temp¥¥presentation.pptx", 
-                    {"slide_numbers": [1, 3, 5]},
-                    ["slide_number", "title", "preview_text"])
-
-        # Complex search with multiple criteria
-        query_slides("C:¥¥temp¥¥presentation.pptx", {
-            "title": {"regex": "Q[1-4].*Results"},
-            "content": {"has_tables": true, "has_images": false},
-            "notes": {"is_empty": false}
-        }, limit=10)
+        query_slides("presentation.pptx", {}, 
+                    return_fields=["slide_number", "title", "text"],
+                    slide_numbers=[1, 3, 5])
+        
+        # Get all text with full_text output type
+        query_slides("presentation.pptx", {}, output_type="full_text")
     """
-    logger.info(f"query_slides called with file_path: {file_path}, search_criteria: {search_criteria}")
+    logger.info(f"query_slides called with file_path: {file_path}, search_criteria: {search_criteria}, output_type: {output_type}")
 
     try:
         server = get_powerpoint_server()
+        
+        # Set default return_fields based on output_type parameter
+        if return_fields is None:
+            return_fields = ["slide_number", "title", "text"]
+        
+        # Validate output_type parameter
+        if output_type not in ["preview_text_3boxes", "full_text"]:
+            return json.dumps({
+                "error": f"Invalid output_type parameter: {output_type}. Must be 'preview_text_3boxes' or 'full_text'."
+            }, ensure_ascii=False)
+        
         arguments = {
             "file_path": file_path,
             "search_criteria": search_criteria,
-            "return_fields": return_fields or ["slide_number", "title", "object_counts"],
+            "return_fields": return_fields,
+            "slide_numbers": slide_numbers,
+            "output_format": output_format,
+            "output_type": output_type,
             "limit": limit
         }
 
         # Call the async method directly
-        result = await server._query_slides(arguments)
+        result = await server._query_slides_simple(arguments)
 
         # Extract text content from CallToolResult
         content_text = ""
@@ -256,7 +232,7 @@ async def query_slides(
         }, indent=2)
 
 @mcp.tool(description="Extract table data with flexible selection and formatting detection. Supports various slide selection methods, table filtering criteria, column selection, and comprehensive formatting detection.")
-async def extract_table_data(
+async def extract_formatted_table_data(
     file_path: Annotated[str, "Path to the PowerPoint file (.pptx)"],
     slide_numbers: Annotated[Optional[Union[int, str, List[int]]], "Slide numbers to extract tables from (1-based indexing). Supports: None (all slides), int (single slide), List[int] (specific slides), or str (Python-style slicing like ':100', '5:20', '25:', '1,5,10')"] = None,
     table_criteria: Annotated[Optional[Dict[str, Any]], "Criteria for selecting tables. Keys: min_rows, max_rows, min_columns, max_columns, header_contains (List[str]), header_patterns (List[str])"] = None,
@@ -265,131 +241,30 @@ async def extract_table_data(
     output_format: Annotated[str, "Output format for extracted data. Valid values: 'structured' (hierarchical with metadata), 'flat' (flattened array), 'grouped_by_slide' (tables grouped by slide)"] = "structured",
     include_metadata: Annotated[bool, "Whether to include table metadata (row_span, col_span, row_col_position, position, size, formatting stats)"] = True
 ) -> str:
-    """Extract table data with flexible selection and formatting detection.
+    """Extract table data with comprehensive formatting detection (legacy tool with full formatting support).
+
+    This tool extracts tables with complete formatting information including bold, italic, colors, etc.
+    For simpler output without formatting, use extract_table_data instead.
 
     Args:
         file_path: Path to the PowerPoint file (.pptx)
         slide_numbers: Optional. Slide numbers to extract tables from (1-based indexing).
                        Supports multiple formats: None(=All),int,List[int],Python-style slicing
-                       - None: All slides
-                       - int: Single slide (e.g., 3)
-                       - List[int]: Specific slides (e.g., [1, 5, 10])
-                       - str: Python-style slicing:
-                         - ":100" or "[:100]": First 100 slides (1-100)
-                         - "5:20" or "[5:20]": Slides 5-20
-                         - "25:" or "[25:]": Slides 25 to end
-                         - "3" or "[3]": Single slide 3
-                         - "1,5,10" or "[1,5,10]": Specific slides 1, 5, 10
-
-        table_criteria: Criteria for selecting tables (optional). Dictionary with keys:
-            - min_rows: int - Minimum number of rows required
-            - max_rows: int - Maximum number of rows allowed
-            - min_columns: int - Minimum number of columns required
-            - max_columns: int - Maximum number of columns allowed
-            - header_contains: List[str] - Headers must contain these strings
-            - header_patterns: List[str] - Headers must match these regex patterns
-            Example: {"min_rows": 2, "header_contains": ["Name", "Date"]}
-
-        column_selection: Configuration for column selection (optional). Dictionary with keys:
-            - specific_columns: List[str] - Include only these specific column names
-            - column_patterns: List[str] - Include columns matching these regex patterns
-            - exclude_columns: List[str] - Exclude these column names
-            - all_columns: bool - Include all columns (default: True)
-            Example: {"specific_columns": ["Name", "Age"], "exclude_columns": ["ID"]}
-
-        formatting_detection: Configuration for formatting detection (optional). Dictionary with keys:
-            - detect_bold: bool - Detect bold text formatting (default: True)
-            - detect_italic: bool - Detect italic text formatting (default: True)
-            - detect_underline: bool - Detect underlined text formatting (default: True)
-            - detect_highlight: bool - Detect highlighted text formatting (default: True)
-            - detect_colors: bool - Detect font and background colors (default: True)
-            - detect_hyperlinks: bool - Detect hyperlinks in cells (default: True)
-            - preserve_formatting: bool - Preserve formatting in output (default: False)
-            Example: {"detect_bold": True, "detect_colors": False}
-
-        output_format: Output format for extracted data. Valid values:
-            - "structured": Hierarchical structure with metadata (default)
-            - "flat": Flattened array of all table data
-            - "grouped_by_slide": Tables grouped by slide number
-
-        include_metadata: Whether to include table metadata (row_span,col_span,row_col_position, position, size, formatting stats)
+        table_criteria: Criteria for selecting tables (optional)
+        column_selection: Configuration for column selection (optional)
+        formatting_detection: Configuration for formatting detection (optional)
+        output_format: Output format for extracted data
+        include_metadata: Whether to include table metadata
 
     Returns:
-        JSON string containing the extracted table data with structure:
-        {
-            "summary": {
-                "total_tables_found": int,
-                "total_tables": int,
-                "total_rows": int,
-                "slides_with_tables": int,
-                "formatting_found": {
-                    "bold_cells": int,
-                    "italic_cells": int,
-                    "highlighted_cells": int,
-                    "colored_cells": int
-                },
-                "slides_processed": int
-            },
-            "extracted_tables": [
-                {
-                    "slide_number": int,
-                    "table_index": int,
-                    "rows": int,
-                    "columns": int,
-                    "headers": List[str,str,..],
-                    "metadata": {
-                        "has_formatting": bool,
-                        "cell_count": int,
-                        "non_empty_cells": int
-                    },
-                    "position": [int,int],
-                    "size": [int,int],
-                    "data": [
-                        {
-                            "header_name": {
-                                "value": str,
-                                "formatting": {
-                                    "bold": bool,
-                                    "italic": bool,
-                                    "underline": bool,
-                                    "highlight": bool,
-                                    "strikethrough": bool,
-                                    "font_color": str | null,
-                                    "background_color": str | null,
-                                    "font_size": float,
-                                    "hyperlink": str |null
-                                },
-                                "row_span": int,
-                                "col_span": int,
-                                "row_col_position": [int,int]
-                            }
-                        }
-                    ]
-                }
-            ]
-        }
+        JSON string containing the extracted table data with full formatting information
 
     Example Usage:
-        # Basic table extraction from all slides
-        extract_table_data("C:¥¥temp¥¥presentation.pptx")
-
-        # Extract specific columns from all slides
-        extract_table_data("C:¥¥temp¥¥presentation.pptx",
-                          column_selection={"specific_columns": ["Name", "Age"]})
-
-        # Extract tables from first 10 slides
-        extract_table_data("C:¥¥temp¥¥presentation.pptx", slide_numbers=":10")
-
-        # Extract tables with specific criteria
-        extract_table_data("C:¥¥temp¥¥presentation.pptx", slide_numbers=[1, 2],
-                          table_criteria={"min_rows": 2, "header_contains": ["Name"]})
-
-        # Extract specific columns with formatting from all slides
-        extract_table_data("C:¥¥temp¥¥presentation.pptx",
-                          column_selection={"specific_columns": ["Name", "Age"]},
-                          formatting_detection={"detect_bold": True, "detect_colors": True})
+        # Extract with formatting detection
+        extract_formatted_table_data("C:¥¥temp¥¥presentation.pptx",
+                                    formatting_detection={"detect_bold": True, "detect_colors": True})
     """
-    logger.info(f"extract_table_data called with file_path: {file_path}, slide_numbers: {slide_numbers}")
+    logger.info(f"extract_formatted_table_data called with file_path: {file_path}, slide_numbers: {slide_numbers}")
 
     try:
         server = get_powerpoint_server()
@@ -405,6 +280,101 @@ async def extract_table_data(
 
         # Call the async method directly
         result = await server._extract_table_data(arguments)
+
+        # Extract text content from CallToolResult
+        content_text = ""
+        if result.content:
+            for content_item in result.content:
+                if hasattr(content_item, 'text'):
+                    content_text += content_item.text
+
+        return content_text
+
+    except Exception as e:
+        logger.error(f"Error in extract_formatted_table_data: {e}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        return json.dumps({
+            "error": str(e),
+            "error_type": "extract_formatted_table_data_error",
+            "file_path": file_path,
+            "slide_numbers": slide_numbers
+        }, indent=2)
+
+@mcp.tool(description="Extract table data in simplified format without formatting information. Optimized for minimal context consumption with clean output formats.")
+async def extract_table_data(
+    file_path: Annotated[str, "Path to the PowerPoint file (.pptx)"],
+    slide_numbers: Annotated[Optional[Union[int, str, List[int]]], "Slide numbers to extract tables from (1-based indexing). Supports: None (all slides), int (single slide), List[int] (specific slides), or str (Python-style slicing like ':100', '5:20', '25:', '1,5,10')"] = None,
+    column_selection: Annotated[Optional[Dict[str, Any]], "Configuration for column selection. Keys: specific_columns (List[str]), column_patterns (List[str]), exclude_columns (List[str]), all_columns (bool)"] = None,
+    output_format: Annotated[str, "Output format: 'row_col_value' (default, values only), 'row_col_formattedvalue' (with formatting), 'html' (HTML table with formatting), 'simple_html' (HTML table without formatting)"] = "row_col_value"
+) -> str:
+    """Extract table data in simplified format optimized for minimal context consumption.
+
+    This tool provides clean, simplified table extraction without heavy formatting metadata.
+    For full formatting details, use extract_formatted_table_data instead.
+
+    Args:
+        file_path: Path to the PowerPoint file (.pptx)
+        slide_numbers: Optional. Slide numbers to extract tables from (1-based indexing).
+                       Supports: None (all slides), int, List[int], or str (Python-style slicing)
+        column_selection: Optional column filtering configuration
+        output_format: Output format selection:
+            - "row_col_value": [row, col, value] format with values only (default)
+            - "row_col_formattedvalue": [row, col, value] format with formatting included
+            - "html": HTML table with formatting (supports colspan/rowspan)
+            - "simple_html": HTML table without formatting (supports colspan/rowspan)
+
+    Returns:
+        JSON string with structure:
+        For row_col_value/row_col_formattedvalue:
+        {
+            "extracted_tables": [
+                {
+                    "slide_number": int,
+                    "rows": int,
+                    "columns": int,
+                    "headers": ["col1", "col2", ...],
+                    "data": [[row, col, "value"], [row, col, "value"], ...]
+                }
+            ]
+        }
+
+        For html/simple_html:
+        {
+            "extracted_html_tables": [
+                {
+                    "slide_number": int,
+                    "rows": int,
+                    "columns": int,
+                    "headers": ["col1", "col2", ...],
+                    "htmldata": "<table style=\"white-space: pre;\">...</table>"
+                }
+            ]
+        }
+
+    Example Usage:
+        # Extract tables as simple row/col/value arrays
+        extract_table_data("presentation.pptx")
+
+        # Extract as HTML tables
+        extract_table_data("presentation.pptx", output_format="html")
+
+        # Extract specific slides only
+        extract_table_data("presentation.pptx", slide_numbers=[1, 3, 5])
+    """
+    logger.info(f"extract_table_data called with file_path: {file_path}, slide_numbers: {slide_numbers}, output_format: {output_format}")
+
+    try:
+        server = get_powerpoint_server()
+        arguments = {
+            "file_path": file_path,
+            "slide_numbers": slide_numbers,
+            "column_selection": column_selection,
+            "output_format": output_format
+        }
+
+        # Call the async method directly
+        result = await server._extract_table_data_simple(arguments)
 
         # Extract text content from CallToolResult
         content_text = ""

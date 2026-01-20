@@ -323,12 +323,15 @@ class ContentExtractor:
                 for run in runs:
                     text_elem = self.xml_parser.find_element_with_namespace(run, './/a:t')
                     if text_elem is not None and text_elem.text:
-                        paragraph_text.append(text_elem.text)
+                        # Normalize whitespace within each run
+                        normalized_text = ' '.join(text_elem.text.split())
+                        if normalized_text:
+                            paragraph_text.append(normalized_text)
 
                 if paragraph_text:
-                    text_parts.append(''.join(paragraph_text))
+                    text_parts.append(' '.join(paragraph_text))
 
-            return '\n'.join(text_parts) if text_parts else None
+            return ' '.join(text_parts) if text_parts else None
 
         except Exception as e:
             logger.warning(f"Failed to extract shape text content: {e}")
@@ -581,7 +584,7 @@ class ContentExtractor:
                         if notes_text:
                             notes_text_parts.append(notes_text)
 
-            return '\n'.join(notes_text_parts) if notes_text_parts else ""
+            return ' '.join(notes_text_parts) if notes_text_parts else ""
 
         except Exception as e:
             logger.warning(f"Failed to extract slide notes: {e}")
@@ -686,9 +689,9 @@ class ContentExtractor:
                     paragraph_texts_plain.append(para_plain)
                     paragraph_texts_formatted.append(para_formatted)
 
-            # Combine all paragraphs
-            text_element.content_plain = '\n'.join(paragraph_texts_plain)
-            text_element.content_formatted = '\n'.join(paragraph_texts_formatted)
+            # Combine all paragraphs with spaces instead of newlines for compact output
+            text_element.content_plain = ' '.join(paragraph_texts_plain)
+            text_element.content_formatted = ' '.join(paragraph_texts_formatted)
 
             # Debug: Log font sizes before deduplication
             logger.debug(f"Font sizes before deduplication: {text_element.font_sizes}")
@@ -772,7 +775,11 @@ class ContentExtractor:
             if text_elem is None or not text_elem.text:
                 return "", ""
 
-            text_content = text_elem.text
+            # Normalize whitespace: replace multiple spaces/newlines with single space
+            text_content = ' '.join(text_elem.text.split())
+            if not text_content:
+                return "", ""
+            
             formatted_text = text_content
 
             # Extract run properties
@@ -1305,12 +1312,15 @@ class ContentExtractor:
                 for run in runs:
                     text_elem = self.xml_parser.find_element_with_namespace(run, './/a:t')
                     if text_elem is not None and text_elem.text:
-                        paragraph_text.append(text_elem.text)
+                        # Normalize whitespace within each run
+                        normalized_text = ' '.join(text_elem.text.split())
+                        if normalized_text:
+                            paragraph_text.append(normalized_text)
 
                 if paragraph_text:
-                    text_parts.append(''.join(paragraph_text))
+                    text_parts.append(' '.join(paragraph_text))
 
-            return '\n'.join(text_parts) if text_parts else ""
+            return ' '.join(text_parts) if text_parts else ""
 
         except Exception as e:
             logger.warning(f"Failed to extract cell text content: {e}")
